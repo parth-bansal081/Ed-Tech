@@ -1,0 +1,18 @@
+# Ignore node_modules wherever they appear in the project
+**/node_modules/
+node_modules/
+frontend/node_modules/
+
+# Ignore local build directories and environment configs
+.next/
+frontend/.next/
+.env
+dist/
+build/
+processing/__pycache__/
+*.pyc
+
+# Ignore media/upload directories
+temp_uploads/
+processing/downloads/
+temp/

@@ -1,0 +1,37 @@
+# ==============================================================================
+# AeroLearn Local AI Core API Engine — Python Dependency Stack
+# ==============================================================================
+
+# --- WEB FRAMEWORK & ROUTING LAYER ---
+# FastAPI provides the highly performant asynchronous ASGI routing matrix
+fastapi>=0.95.2
+# Uvicorn standard serves the FastAPI application with high-throughput performance
+uvicorn[standard]>=0.18.3
+
+# --- DISTRIBUTED BACKGROUND QUEUE LAYER ---
+# Celery orchestrates out-of-band execution of heavy local and remote AI pipeline tasks
+celery>=5.2.7
+# Redis acts as the high-speed in-memory message broker and task result backend
+redis>=4.5.4
+
+# --- LOCAL AI & SPEECH DECODER SYSTEM ---
+# Ollama provides the official integration layer with the local Ollama daemon (for Qwen2.5-VL)
+ollama>=0.1.7
+# Faster-Whisper is a highly optimized CTranslate2-based implementation of OpenAI's Whisper model
+faster-whisper>=0.10.0
+
+# --- REMOTE AI & AVATAR GENERATION APIS ---
+# AssemblyAI client connects to neural transcription APIs for auto-chapter segmentation
+assemblyai>=0.5.1
+
+# --- MULTI-FORMAT DOCUMENT & IMAGE PARSERS ---
+# PDFPlumber parses native vector PDFs and renders visual pages for local vision-based OCR fallback
+pdfplumber>=0.9.1
+# Pillow manages raw image transformation and formats images for neural Vision-Language-Models
+Pillow>=9.2.0
+
+# --- MEDIA INGESTION & HTTP CORE CLIENTS ---
+# yt-dlp fetches and extracts audio streams from remote YouTube lectures
+yt-dlp>=2022.10.14
+# Requests client manages synchronous HTTP payloads for polling remote avatar rendering APIs (HeyGen)
+requests>=2.28.2
