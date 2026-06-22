@@ -1,0 +1,167 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom Friendly Scrollbars */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0b0d19; /* Warm Soft Indigo */
+}
+
+::-webkit-scrollbar-thumb {
+  background: #252849; /* Cozy Space Indigo */
+  border-radius: 9999px;
+  border: 2px solid #0b0d19;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3c4176;
+}
+
+/* Warm Space Exploration Base Styling */
+body {
+  background-color: #0c0f24; /* Warm Deep Indigo - very comforting and soft */
+  color: #f1f5f9;
+  font-family: 'Outfit', 'Nunito', 'Comic Sans MS', system-ui, -apple-system, sans-serif;
+  overflow-x: hidden;
+}
+
+/* Bubbly Glassmorphism Styles (Kid-Friendly Cosmic Cards) */
+.cyber-glass {
+  background: rgba(23, 27, 62, 0.55);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 2px solid rgba(168, 85, 247, 0.15); /* Soft Purple Spark */
+  border-radius: 1.5rem;
+}
+
+.cyber-glow-primary {
+  box-shadow: 0 0 25px rgba(168, 85, 247, 0.2), inset 0 0 12px rgba(168, 85, 247, 0.05);
+}
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 2px solid rgba(255, 255, 255, 0.06);
+  border-radius: 1.5rem;
+}
+
+.glass-card {
+  background: rgba(18, 22, 53, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 2px solid rgba(99, 102, 241, 0.18); /* Soft indigo spark */
+  border-radius: 2rem; /* Extra rounded for bubbly soft look */
+}
+
+/* Hitbox Accessibility Enhancements (WCAG 2.1 AA) */
+.hitbox {
+  min-height: 48px; /* Larger hit target for disabled/uneducated children */
+  min-width: 48px;
+}
+
+/* Dyslexia Friendly Typography configuration */
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('https://opendyslexic.org/assets/OpenDyslexic-Regular.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+.font-dyslexic {
+  font-family: 'OpenDyslexic', 'Comic Sans MS', sans-serif !important;
+  letter-spacing: 0.15em !important;
+  word-spacing: 0.3em !important;
+  line-height: 1.7 !important;
+}
+
+/* Gentle Zero-Gravity Floating Animation */
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+  100% { transform: translateY(0px); }
+}
+
+.levitate {
+  animation: float 5s ease-in-out infinite;
+}
+
+/* Gentle Twinkling Stars */
+@keyframes twinkle {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.85; }
+}
+
+.star-twinkle {
+  animation: twinkle 3s ease-in-out infinite;
+}
+
+/* Bouncy Kid-Friendly Interactive Buttons */
+.bouncy-pill {
+  border-radius: 9999px !important;
+  transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.bouncy-pill:hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 20px rgba(168, 85, 247, 0.25);
+}
+
+.bouncy-pill:active {
+  transform: scale(0.95);
+}
+
+/* Custom Keyframe Transitions */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+@layer utilities {
+  .cyber-glass {
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(12px);
+    border-top: 2px solid rgba(255, 255, 255, 0.12);
+    border-left: 2px solid rgba(255, 255, 255, 0.12);
+    border-right: 2px solid rgba(255, 255, 255, 0.04);
+    border-bottom: 2px solid rgba(255, 255, 255, 0.04);
+  }
+
+  .glass-panel {
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(12px);
+    border: 2px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .cyber-glow-primary {
+    box-shadow: 0 0 20px rgba(168, 85, 247, 0.25), inset 0 0 10px rgba(168, 85, 247, 0.05);
+  }
+
+  .hitbox {
+    @apply min-h-[48px] min-w-[48px];
+  }
+
+  .text-outline {
+    color: var(--color-outline);
+  }
+
+  .focus-safety:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--color-background), 0 0 0 5px var(--color-secondary);
+  }
+}
