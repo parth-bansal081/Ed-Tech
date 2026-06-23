@@ -1,6 +1,6 @@
 import time
 import json
-import ollama
+from services.openai_service import openai_client
 
 def extract_stem_glossary(text_content: str, target_language: str) -> list:
     """
@@ -32,8 +32,9 @@ def extract_stem_glossary(text_content: str, target_language: str) -> list:
         f"For each term, you must translate it into the target language: {target_language}. "
         "Then, generate a clear, one-sentence plain-language definition for the term.\n\n"
         "STRICT OUTPUT CONSTRAINTS:\n"
-        "You must respond STRICTLY with a valid raw JSON list of dictionaries. "
-        "Do not include any conversational padding, introductory text, or markdown code blocks (like ```json). "
+        "You must respond STRICTLY with a valid raw JSON object. "
+        "Do not include any conversational padding, introductory text, or markdown code blocks. "
+        "The object must contain a single key 'glossary' which is a list of dictionaries. "
         'Each dictionary in the list must contain exactly these three keys: '
         '"term_en", "term_target", and "definition".'
     )
@@ -43,15 +44,18 @@ def extract_stem_glossary(text_content: str, target_language: str) -> list:
     glossary_list = []
     
     try:
-        response = ollama.generate(
-            model='qwen2.5vl:3b',
-            system=system_prompt,
-            prompt=user_prompt,
-            format='json'
+        response = openai_client.chat.completions.create(
+            model="gpt-4o",
+            response_format={"type": "json_object"},
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            temperature=0.2
         )
         
         # Safely parse the strict JSON response
-        raw_response = response.get('response', '[]').strip()
+        raw_response = response.choices[0].message.content.strip()
         
         # Sometimes models wrap in markdown despite instructions, so we clean it just in case
         if raw_response.startswith('```json'):
@@ -59,7 +63,8 @@ def extract_stem_glossary(text_content: str, target_language: str) -> list:
         if raw_response.endswith('```'):
             raw_response = raw_response[:-3]
             
-        glossary_list = json.loads(raw_response.strip())
+        parsed_data = json.loads(raw_response.strip())
+        glossary_list = parsed_data.get("glossary", parsed_data)
         
         # Ensure it's a list
         if not isinstance(glossary_list, list):
@@ -76,9 +81,8 @@ def extract_stem_glossary(text_content: str, target_language: str) -> list:
                 
     except json.JSONDecodeError as e:
         print(f"Failed to parse JSON response: {e}")
-        print(f"Raw Model Output:\n{response.get('response', '')}")
     except Exception as e:
-        print(f"Error during Ollama generation: {e}")
+        print(f"Error during GPT-4 generation: {e}")
         
     end_time = time.perf_counter()
     

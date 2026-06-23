@@ -1,3 +1,4 @@
+import os
 import time
 from celery import Celery
 
@@ -41,9 +42,12 @@ app = Celery("processing_workers")
 # Configure the application to route all task traffic through the local Redis broker.
 # Both the message broker (job dispatch) and result backend (return value storage) 
 # point to the same local Redis instance on database index 0.
+# Read Redis URL from environment — defaults to localhost for local dev, overridden to redis://redis:6379/0 in Docker.
+_redis_url = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
+
 app.conf.update(
-    broker_url='redis://localhost:6379/0',
-    result_backend='redis://localhost:6379/0',
+    broker_url=_redis_url,
+    result_backend=_redis_url,
 
     # Enforce strict JSON serialization throughout the entire task lifecycle.
     # This ensures that task payloads and results are always human-readable,

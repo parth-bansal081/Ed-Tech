@@ -1,6 +1,6 @@
 import time
 import json
-import ollama
+from services.openai_service import openai_client
 
 def audit_translation_logic(original_text: str, translated_text: str) -> dict:
     """
@@ -44,16 +44,18 @@ def audit_translation_logic(original_text: str, translated_text: str) -> dict:
     )
     
     try:
-        # Wrap token-generation step inside precision time.perf_counter() tracking metrics
-        response = ollama.generate(
-            model='qwen2.5vl:3b',
-            system=system_prompt,
-            prompt=user_prompt,
-            format='json'  # Enforce JSON output format
+        response = openai_client.chat.completions.create(
+            model="gpt-4o",
+            response_format={"type": "json_object"},
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            temperature=0.0
         )
         
         # Parse the JSON response
-        result_json = json.loads(response.get('response', '{}'))
+        result_json = json.loads(response.choices[0].message.content.strip())
         
         # Ensure the response has the expected keys, provide safe defaults if parsing fails slightly
         evaluation = {
@@ -70,7 +72,7 @@ def audit_translation_logic(original_text: str, translated_text: str) -> dict:
     except Exception as e:
         evaluation = {
             "logic_check_passed": False,
-            "warnings": [f"Error during Ollama generation: {e}"]
+            "warnings": [f"Error during GPT-4 generation: {e}"]
         }
         
     end_time = time.perf_counter()

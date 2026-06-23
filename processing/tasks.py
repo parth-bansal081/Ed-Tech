@@ -1,78 +1,138 @@
+import os
 import traceback
+import time
 from celery import states
 from celery.exceptions import Ignore
 
-# Import the Celery app instance to register tasks against the correct worker
 from celery_app import app
-
-# Import our standalone pipeline functions.
-# Note: master_extractor.py exports 'unified_extract_text' as its core function.
-# We alias it here to 'extract_text_from_document' to maintain a clean, consistent
-# API surface across this tasks layer without modifying the source module.
-try:
-    from master_extractor import extract_text_from_document
-except ImportError:
-    from master_extractor import unified_extract_text as extract_text_from_document
-
+from master_extractor import unified_extract_text as extract_text_from_document
 from reading_simplifier import simplify_text_cognitive
+from translation_auditor import audit_translation_logic
+from services.openai_service import translate_text, break_into_topics
+from services.supabase_service import update_document_status, create_topic
+from video_processor import download_youtube_audio
 
+# Lazy initialized Whisper model for worker transcription
+whisper_model = None
+
+def get_whisper_model():
+    global whisper_model
+    if whisper_model is None:
+        print("[Celery Worker] Loading Whisper model on CPU/int8...")
+        from faster_whisper import WhisperModel
+        whisper_model = WhisperModel("base", device="cpu", compute_type="int8")
+    return whisper_model
 
 @app.task(
     bind=True,
-    name="tasks.async_document_extraction_task",
-    max_retries=2,
-    default_retry_delay=5
+    name="tasks.async_document_ingestion_pipeline",
+    max_retries=1,
+    default_retry_delay=10
 )
-def async_document_extraction_task(self, file_path: str) -> dict:
+def async_document_ingestion_pipeline(self, document_id: str, file_path: str = None, youtube_url: str = None, target_lang: str = "English", user_token: str = None) -> dict:
     """
-    Background Celery task wrapper for the document text extraction pipeline.
-
-    Executes the full master extraction engine (native PDF vector parsing with 
-    automatic Vision-Language-Model fallback) in an isolated background worker 
-    process, completely decoupled from the web server request cycle.
-
-    Args:
-        file_path: Absolute or relative path to the document file to process.
-
-    Returns:
-        The full extraction result dictionary from master_extractor, containing:
-        - "status"                  : "success" or "error"
-        - "engine_used"             : "native" or "qwen_vl"
-        - "text"                    : The extracted text content
-        - "execution_time_seconds"  : Precision inference latency metric
+    Master Ingestion Pipeline running asynchronously in Celery:
+    1. Ingestion: Programmatic or GPT-4o Vision extraction, or YouTube audio download & Whisper transcribe.
+    2. Translation: Uses GPT-4 to translate raw text while keeping LaTeX intact.
+    3. Audit: Runs GPT-4 translation logical audits to flag math or causal anomalies.
+    4. Explanations: Breaks translated text into modular sub-topics and inserts into DB.
     """
-    print(f"[Celery Worker] async_document_extraction_task received: {file_path}")
-
+    print(f"[Celery Ingestion] Starting pipeline for Document ID: {document_id}")
+    
     try:
-        result = extract_text_from_document(file_path)
-        print(f"[Celery Worker] Extraction complete. Engine: {result.get('engine_used')} | "
-              f"Characters: {len(result.get('text', ''))}")
-        return result
-
+        # Step 1: Extraction
+        update_document_status(document_id, "extracting", user_token=user_token)
+        raw_text = ""
+        
+        if file_path:
+            print(f"[Celery Ingestion] Parsing file: {file_path}")
+            extract_res = extract_text_from_document(file_path)
+            if extract_res.get("status") == "error":
+                raise Exception(extract_res.get("text", "File extraction failed."))
+            raw_text = extract_res.get("text", "")
+        elif youtube_url:
+            print(f"[Celery Ingestion] Processing YouTube URL: {youtube_url}")
+            audio_path = download_youtube_audio(youtube_url)
+            if not audio_path or not os.path.exists(audio_path):
+                raise Exception("Failed to download YouTube audio stream.")
+            
+            # Transcribe with Whisper
+            model = get_whisper_model()
+            segments, info = model.transcribe(audio_path, beam_size=3)
+            words = []
+            for segment in segments:
+                words.append(segment.text)
+            raw_text = " ".join(words).strip()
+            
+            # Housekeeping
+            if os.path.exists(audio_path):
+                os.remove(audio_path)
+        else:
+            raise Exception("Neither file_path nor youtube_url was provided.")
+            
+        if not raw_text:
+            raise Exception("Extracted text content is empty.")
+            
+        update_document_status(document_id, "extracting", {"raw_text": raw_text}, user_token=user_token)
+        
+        # Step 2: Translation
+        update_document_status(document_id, "translating", user_token=user_token)
+        translated_text = raw_text
+        # We do translation if target language is different from English (assuming default source is English/auto)
+        if target_lang.lower() not in ("english", "en"):
+            print(f"[Celery Ingestion] Translating content to {target_lang}...")
+            translated_text = translate_text(raw_text, target_lang)
+            
+        update_document_status(document_id, "translating", {"translated_text": translated_text}, user_token=user_token)
+        
+        # Step 3: Logic/Translation Audit
+        update_document_status(document_id, "auditing", user_token=user_token)
+        audit_res = audit_translation_logic(raw_text, translated_text)
+        
+        warnings_payload = audit_res.get("warnings", [])
+        
+        update_document_status(document_id, "auditing", {"audit_warnings": {"warnings": warnings_payload}}, user_token=user_token)
+        
+        # Step 4: AI Explanations & Topics breakdown
+        print("[Celery Ingestion] Generating sub-topic explanations...")
+        topics = break_into_topics(translated_text)
+        
+        for idx, topic in enumerate(topics):
+            title = topic.get("title", f"Section {idx+1}")
+            explanation = topic.get("explanation", "")
+            query = topic.get("image_query", "study")
+            # Create a simple placeholder image seed url based on the image_query
+            image_url = f"https://picsum.photos/seed/{query.replace(' ', '_')}/400/300"
+            
+            create_topic(
+                document_id=document_id,
+                order_index=idx,
+                title=title,
+                explanation=explanation,
+                image_query=query,
+                image_url=image_url,
+                user_token=user_token
+            )
+            
+        # Step 5: Complete
+        update_document_status(document_id, "ready", user_token=user_token)
+        print(f"[Celery Ingestion] Document {document_id} is marked READY.")
+        return {"status": "success", "document_id": document_id}
+        
     except Exception as exc:
-        # Log the full diagnostic traceback to the worker console so we can diagnose 
-        # exactly where in the extraction pipeline the failure occurred without 
-        # crashing or recycling the worker process itself.
         error_trace = traceback.format_exc()
-        print(f"[Celery Worker FAILURE] async_document_extraction_task crashed.\n{error_trace}")
-
-        # Mark this specific task instance as FAILED in the Redis result backend, 
-        # storing the error string so the frontend can retrieve it via the task_id 
-        # status polling endpoint and display a meaningful error to the student.
+        print(f"[Celery Ingestion CRASH] Document {document_id} failed:\n{error_trace}")
+        update_document_status(document_id, "failed", user_token=user_token)
         self.update_state(
             state=states.FAILURE,
             meta={
                 "status": "error",
-                "file_path": file_path,
+                "document_id": document_id,
                 "error": str(exc),
                 "trace": error_trace
             }
         )
-
-        # Raise Ignore to tell Celery NOT to overwrite our manually set FAILURE state
-        # with its default exception handling, preserving our structured error payload.
         raise Ignore()
-
 
 @app.task(
     bind=True,
@@ -82,55 +142,16 @@ def async_document_extraction_task(self, file_path: str) -> dict:
 )
 def async_cognitive_simplification_task(self, markdown_text: str, tier: str) -> dict:
     """
-    Background Celery task wrapper for the Cognitive Accommodations Layer.
-
-    Executes the local Ollama-powered text simplification engine in an isolated 
-    background worker process. This prevents long Ollama inference times (30-60s)
-    from blocking the FastAPI web server's thread pool during concurrent student 
-    accessibility requests.
-
-    Args:
-        markdown_text: The dense technical Markdown text to adapt.
-        tier:          The accessibility adaptation tier to apply:
-                       - "summary"       : Bulleted high-contrast concept breakdown
-                       - "simplified"    : 5th-grade reading level rewrite
-                       - "step_by_step"  : Linear sequential numbered procedure
-
-    Returns:
-        The full simplification result dictionary from reading_simplifier, containing:
-        - "tier_processed"         : The tier that was applied
-        - "adapted_markdown"       : The accessibility-adapted Markdown output string
-        - "execution_time_seconds" : Precision inference latency metric
+    Cognitive simplification running in background Celery task.
     """
-    print(f"[Celery Worker] async_cognitive_simplification_task received. Tier: '{tier}' | "
-          f"Input length: {len(markdown_text)} chars")
-
+    print(f"[Celery Worker] async_cognitive_simplification_task: Tier '{tier}'")
     try:
         result = simplify_text_cognitive(markdown_text, tier)
-        print(f"[Celery Worker] Simplification complete. Tier: {result.get('tier_processed')} | "
-              f"Output length: {len(result.get('adapted_markdown', ''))} chars")
         return result
-
     except Exception as exc:
-        # Capture and log the full traceback for the worker console diagnostic output.
-        # This is critical for identifying whether the failure originated from the 
-        # Ollama connection layer, JSON parsing, or the model inference step itself.
         error_trace = traceback.format_exc()
-        print(f"[Celery Worker FAILURE] async_cognitive_simplification_task crashed.\n{error_trace}")
-
-        # Persist the structured error payload into the Redis result backend so the 
-        # frontend's task status polling endpoint can surface a meaningful diagnostic 
-        # message to the student rather than a generic timeout or 500 error.
         self.update_state(
             state=states.FAILURE,
-            meta={
-                "status": "error",
-                "tier": tier,
-                "error": str(exc),
-                "trace": error_trace
-            }
+            meta={"status": "error", "error": str(exc), "trace": error_trace}
         )
-
-        # Raise Ignore to preserve our manually structured FAILURE state in Redis
-        # without Celery overwriting it with its own default exception representation.
         raise Ignore()

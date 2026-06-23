@@ -1,6 +1,6 @@
 import time
 import json
-import ollama
+from services.openai_service import openai_client
 
 def simplify_text_cognitive(markdown_text: str, tier: str) -> dict:
     """
@@ -47,7 +47,7 @@ def simplify_text_cognitive(markdown_text: str, tier: str) -> dict:
     tier_instructions = {
         "summary": (
             "Create a high-contrast, structured, bulleted breakdown focusing ONLY on core formulas, "
-            "critical definitions, and the absolute main concepts. Use bold headers for each concept group."
+            "critical definitions, and the main concepts. Use bold headers for each concept group."
         ),
         "simplified": (
             "Rewrite the text in a clear reading layout at approximately a 5th-grade reading level. "
@@ -86,19 +86,21 @@ def simplify_text_cognitive(markdown_text: str, tier: str) -> dict:
     )
 
     try:
-        print("[Neural Processing] Routing payload to local Qwen2.5-VL inference engine...")
-        response = ollama.generate(
-            model='qwen2.5vl:3b',
-            system=system_prompt,
-            prompt=user_prompt,
-            format='json'  # Enforce structured JSON output at the inference sampling level
+        print("[Neural Processing] Routing payload to OpenAI GPT-4 inference engine...")
+        response = openai_client.chat.completions.create(
+            model="gpt-4o",
+            response_format={"type": "json_object"},
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            temperature=0.3
         )
 
-        # Extract the raw string response from the Ollama payload
-        raw_response = response.get('response', '{}').strip()
+        # Extract the raw string response from the payload
+        raw_response = response.choices[0].message.content.strip()
 
         # Defensively strip any rogue markdown fences the model may have injected
-        # despite the strict instruction, to guarantee safe JSON parsing downstream
         if raw_response.startswith('```json'):
             raw_response = raw_response[7:]
         if raw_response.startswith('```'):
@@ -119,13 +121,12 @@ def simplify_text_cognitive(markdown_text: str, tier: str) -> dict:
 
     except json.JSONDecodeError as e:
         print(f"[CRITICAL FAILURE] JSON structural collapse during decoding: {e}")
-        print(f"Raw Model Output Dump:\n{response.get('response', 'No response captured.')}")
         final_payload = {
             "tier_processed": tier,
             "adapted_markdown": "[Error] Neural model failed to return a valid structured JSON payload."
         }
     except Exception as e:
-        print(f"[CRITICAL FAILURE] Unhandled error during Ollama generation: {e}")
+        print(f"[CRITICAL FAILURE] Unhandled error during GPT-4 generation: {e}")
         final_payload = {
             "tier_processed": tier,
             "adapted_markdown": f"[Error] Neural synthesis failed with exception: {e}"
