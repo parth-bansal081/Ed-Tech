@@ -11,8 +11,13 @@
 CREATE TABLE IF NOT EXISTS public.profiles (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     display_name TEXT,
+    full_name TEXT,
     preferred_languages TEXT[] DEFAULT '{}',
     disabilities TEXT[] DEFAULT '{}',
+    -- Srishti's accessibility preference columns (used by OnboardingForm.jsx + AccessibilityContext.js)
+    dyslexia_friendly BOOLEAN DEFAULT FALSE,
+    high_contrast BOOLEAN DEFAULT FALSE,
+    sign_language_preference BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -21,8 +26,13 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 -- If the profiles table already existed (e.g. from a default Supabase setup)
 -- without these columns, ADD COLUMN IF NOT EXISTS ensures they are added safely.
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS display_name TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS full_name TEXT;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS preferred_languages TEXT[] DEFAULT '{}';
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS disabilities TEXT[] DEFAULT '{}';
+-- Srishti's accessibility columns (OnboardingForm.jsx + AccessibilityContext.js)
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS dyslexia_friendly BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS high_contrast BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS sign_language_preference BOOLEAN DEFAULT FALSE;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
 
