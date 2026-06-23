@@ -40,6 +40,7 @@ import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { supabase } from '@/lib/supabaseClient';
 import { useAccessibility } from '@/context/AccessibilityContext';
+import NeuralConstellationMap from '@/components/shared/NeuralConstellationMap';
 
 function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -682,29 +683,23 @@ const Dashboard = ({ onNavigate, profile }) => {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 relative z-10">
           {/* Active Pathways */}
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-6 lg:col-span-2">
             <h3 className="font-extrabold text-lg text-white">Active Synapse Pathways</h3>
-            <div className="flex flex-col gap-4">
-              {[
-                { title: 'Neural Systems & Mathematics', progress: 78, module: 'F = ma Linear Equations' },
-                { title: 'Cognitive Load Architectures', progress: 34, module: 'High-Contrast Memory Scaffolds' }
-              ].map(item => (
-                <GlassCard key={item.title} className="p-6">
-                  <div className="flex justify-between items-end mb-4">
-                    <h4 className="font-bold text-sky-400">{item.title}</h4>
-                    <span className="text-xs font-mono text-slate-500">{item.progress}% COMPLETED</span>
-                  </div>
-                  <div className="h-1.5 bg-slate-800 w-full mb-4 rounded-full overflow-hidden">
-                    <div className="h-full bg-sky-500" style={{ width: `${item.progress}%` }} />
-                  </div>
-                  <p className="text-xs text-slate-400 font-mono">Next module: {item.module}</p>
-                </GlassCard>
-              ))}
-            </div>
+            <NeuralConstellationMap 
+              onNodeClick={(node) => {
+                console.log("Navigating to star node:", node);
+                if (node.id === 'mod-1') onNavigate('uploads');
+                else if (node.id === 'mod-2') onNavigate('notes');
+                else if (node.id === 'mod-3') onNavigate('media');
+                else if (node.id === 'mod-4') onNavigate('player');
+                else if (node.id === 'mod-5') onNavigate('settings');
+                else if (node.id === 'mod-6') onNavigate('hive');
+              }}
+            />
           </div>
 
           {/* System Feed */}
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-6 lg:col-span-2">
             <h3 className="font-extrabold text-lg text-white">AeroLearn Platform Feed</h3>
             <div className="flex items-center gap-4">
               <span className="px-3 py-1 rounded text-[10px] font-mono uppercase bg-sky-500/15 border-l-2 border-sky-500 text-sky-400">Activity Log</span>
