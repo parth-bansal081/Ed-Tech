@@ -2,70 +2,98 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ───────────────────────────────────────────────
+   Light Educational Theme — AeroLearn 2.0
+   Palette: Warm Cream · Sky Blue · Soft Indigo · Sunny Yellow
+─────────────────────────────────────────────── */
+
 /* Custom Friendly Scrollbars */
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #0b0d19; /* Warm Soft Indigo */
+  background: #f1f5f9; /* Soft slate-100 */
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #252849; /* Cozy Space Indigo */
+  background: #bfdbfe; /* Warm sky-200 */
   border-radius: 9999px;
-  border: 2px solid #0b0d19;
+  border: 2px solid #f1f5f9;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #3c4176;
+  background: #93c5fd; /* Sky-300 on hover */
 }
 
-/* Warm Space Exploration Base Styling */
+/* Light Educational Base Styling */
 body {
-  background-color: #0c0f24; /* Warm Deep Indigo - very comforting and soft */
-  color: #f1f5f9;
-  font-family: 'Outfit', 'Nunito', 'Comic Sans MS', system-ui, -apple-system, sans-serif;
+  background-color: #fdfbf7; /* Warm cream — approachable and soft */
+  color: #1e293b;            /* Slate-800 — high contrast on light */
+  font-family: 'Outfit', 'Nunito', system-ui, -apple-system, sans-serif;
   overflow-x: hidden;
 }
 
-/* Bubbly Glassmorphism Styles (Kid-Friendly Cosmic Cards) */
-.cyber-glass {
-  background: rgba(23, 27, 62, 0.55);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 2px solid rgba(168, 85, 247, 0.15); /* Soft Purple Spark */
-  border-radius: 1.5rem;
+/* ── Card / Panel Primitives (Light Variants) ── */
+
+/* Replaces dark glassmorphism — solid white tile with soft shadow */
+.edu-card {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0; /* Slate-200 */
+  border-radius: 1.25rem;
+  box-shadow: 0 2px 12px rgba(99, 102, 241, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
-.cyber-glow-primary {
-  box-shadow: 0 0 25px rgba(168, 85, 247, 0.2), inset 0 0 12px rgba(168, 85, 247, 0.05);
+.edu-card-active {
+  background: #eff6ff; /* Blue-50 */
+  border: 1.5px solid #93c5fd; /* Sky-300 */
+  box-shadow: 0 0 0 3px rgba(147, 197, 253, 0.25);
+}
+
+/* Frosted sidebar panel — translucent warm white */
+.edu-sidebar {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-right: 1.5px solid #e2e8f0;
+}
+
+/* Legacy utility aliases kept for backward compat */
+.cyber-glass {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 1.25rem;
+  box-shadow: 0 2px 12px rgba(99, 102, 241, 0.06);
 }
 
 .glass-panel {
-  background: rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 2px solid rgba(255, 255, 255, 0.06);
-  border-radius: 1.5rem;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1.5px solid #e2e8f0;
+  border-radius: 1.25rem;
 }
 
 .glass-card {
-  background: rgba(18, 22, 53, 0.7);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 2px solid rgba(99, 102, 241, 0.18); /* Soft indigo spark */
-  border-radius: 2rem; /* Extra rounded for bubbly soft look */
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 1.5rem;
+  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.07);
 }
 
-/* Hitbox Accessibility Enhancements (WCAG 2.1 AA) */
+/* ── Glow Accents (Light-safe versions) ── */
+.cyber-glow-primary {
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.15), inset 0 0 8px rgba(99, 102, 241, 0.04);
+}
+
+/* ── Hitbox Accessibility (WCAG 2.1 AA) ── */
 .hitbox {
-  min-height: 48px; /* Larger hit target for disabled/uneducated children */
+  min-height: 48px;
   min-width: 48px;
 }
 
-/* Dyslexia Friendly Typography configuration */
+/* ── Dyslexia Friendly Typography ── */
 @font-face {
   font-family: 'OpenDyslexic';
   src: url('https://opendyslexic.org/assets/OpenDyslexic-Regular.otf') format('opentype');
@@ -77,13 +105,13 @@ body {
   font-family: 'OpenDyslexic', 'Comic Sans MS', sans-serif !important;
   letter-spacing: 0.15em !important;
   word-spacing: 0.3em !important;
-  line-height: 1.7 !important;
+  line-height: 1.8 !important;
 }
 
-/* Gentle Zero-Gravity Floating Animation */
+/* ── Gentle Floating Animation (reduced on low-sensory) ── */
 @keyframes float {
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-8px); }
+  0%   { transform: translateY(0px); }
+  50%  { transform: translateY(-6px); }
   100% { transform: translateY(0px); }
 }
 
@@ -91,77 +119,75 @@ body {
   animation: float 5s ease-in-out infinite;
 }
 
-/* Gentle Twinkling Stars */
-@keyframes twinkle {
-  0%, 100% { opacity: 0.3; }
-  50% { opacity: 0.85; }
+/* ── Subtle Shimmer on active nodes ── */
+@keyframes shimmer {
+  0%, 100% { opacity: 0.6; }
+  50%       { opacity: 1; }
 }
 
-.star-twinkle {
-  animation: twinkle 3s ease-in-out infinite;
+.shimmer {
+  animation: shimmer 2.5s ease-in-out infinite;
 }
 
-/* Bouncy Kid-Friendly Interactive Buttons */
+/* ── Approachable Interactive Buttons (Light Theme) ── */
 .bouncy-pill {
   border-radius: 9999px !important;
-  transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transition: all 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .bouncy-pill:hover {
-  transform: scale(1.05);
-  box-shadow: 0 8px 20px rgba(168, 85, 247, 0.25);
+  transform: scale(1.04);
+  box-shadow: 0 6px 18px rgba(99, 102, 241, 0.18);
 }
 
 .bouncy-pill:active {
-  transform: scale(0.95);
+  transform: scale(0.96);
 }
 
-/* Custom Keyframe Transitions */
+/* ── Fade-In Micro-Animation ── */
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(5px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.3s ease-out forwards;
+  animation: fadeIn 0.28s ease-out forwards;
 }
 
+/* ── Stripe Background (used in upload drop zones) ── */
+.stripe-bg {
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 8px,
+    rgba(99, 102, 241, 0.04) 8px,
+    rgba(99, 102, 241, 0.04) 16px
+  );
+}
+
+/* ── Tailwind Utilities Layer ── */
 @layer utilities {
   .cyber-glass {
-    background: rgba(255, 255, 255, 0.04);
-    backdrop-filter: blur(12px);
-    border-top: 2px solid rgba(255, 255, 255, 0.12);
-    border-left: 2px solid rgba(255, 255, 255, 0.12);
-    border-right: 2px solid rgba(255, 255, 255, 0.04);
-    border-bottom: 2px solid rgba(255, 255, 255, 0.04);
+    background: #ffffff;
+    border: 1.5px solid #e2e8f0;
   }
 
   .glass-panel {
-    background: rgba(255, 255, 255, 0.04);
-    backdrop-filter: blur(12px);
-    border: 2px solid rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(10px);
+    border: 1.5px solid #e2e8f0;
   }
 
   .cyber-glow-primary {
-    box-shadow: 0 0 20px rgba(168, 85, 247, 0.25), inset 0 0 10px rgba(168, 85, 247, 0.05);
+    box-shadow: 0 0 16px rgba(99, 102, 241, 0.14), inset 0 0 8px rgba(99, 102, 241, 0.04);
   }
 
   .hitbox {
     @apply min-h-[48px] min-w-[48px];
   }
 
-  .text-outline {
-    color: var(--color-outline);
-  }
-
   .focus-safety:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 3px var(--color-background), 0 0 0 5px var(--color-secondary);
+    box-shadow: 0 0 0 3px #ffffff, 0 0 0 5px #6366f1;
   }
 }

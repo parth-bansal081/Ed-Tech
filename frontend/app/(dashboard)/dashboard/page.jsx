@@ -51,10 +51,10 @@ const GlassCard = ({ children, className, active, onClick }) => (
   <div
     onClick={onClick}
     className={cn(
-      "p-6 rounded-2xl border backdrop-blur-xl transition-all duration-300",
+      "p-6 rounded-2xl border-2 transition-all duration-300",
       active
-        ? "border-sky-500 bg-sky-500/10 shadow-[0_0_15px_rgba(14,165,233,0.2)]"
-        : "border-slate-200 dark:border-slate-800 bg-white/5 hover:bg-white/10 dark:hover:bg-slate-900/40",
+        ? "border-amber-400 bg-amber-50/70 shadow-[0_4px_12px_rgba(251,191,36,0.15)] text-slate-900"
+        : "border-orange-100 bg-white hover:border-orange-200 hover:shadow-sm text-slate-700",
       className
     )}
   >
@@ -72,10 +72,10 @@ const CyberButton = ({
   disabled = false
 }) => {
   const variants = {
-    primary: "bg-sky-600 hover:bg-sky-500 text-white shadow-lg shadow-sky-500/20 hover:shadow-sky-500/30",
-    secondary: "bg-slate-800 text-slate-100 hover:bg-slate-700",
-    ghost: "bg-transparent text-slate-300 hover:bg-white/5",
-    outline: "border border-sky-500/50 text-sky-400 hover:bg-sky-500/10"
+    primary: "bg-orange-500 hover:bg-orange-600 text-white shadow-md shadow-orange-500/10 font-bold border-b-4 border-orange-700 active:border-b-0 active:mt-1",
+    secondary: "bg-slate-100 text-slate-800 hover:bg-slate-200 border-2 border-slate-200 font-bold",
+    ghost: "bg-transparent text-slate-600 hover:bg-orange-50/60 font-semibold",
+    outline: "border-2 border-orange-400 text-orange-600 hover:bg-orange-50/50 font-bold"
   };
 
   return (
@@ -84,7 +84,7 @@ const CyberButton = ({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "px-6 py-2.5 uppercase tracking-wider font-bold text-xs rounded-xl transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed",
+        "px-6 py-2.5 uppercase tracking-wider text-xs rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed h-10",
         variants[variant],
         className
       )}
@@ -96,17 +96,17 @@ const CyberButton = ({
 };
 
 const ProgressIndicator = ({ phase, label, progress }) => (
-  <section className="flex flex-col gap-4">
+  <section className="flex flex-col gap-3">
     <div className="flex justify-between items-end">
       <div>
-        <p className="font-mono text-sky-400 uppercase tracking-widest mb-1 text-xs">{phase}</p>
-        <h2 className="text-3xl font-extrabold text-white">{label}</h2>
+        <p className="font-mono text-orange-500 uppercase tracking-widest mb-0.5 text-xs font-bold">{phase}</p>
+        <h2 className="text-2xl font-black text-slate-800">{label}</h2>
       </div>
-      <span className="font-mono text-slate-400 text-sm">{progress}%</span>
+      <span className="font-mono text-slate-500 font-bold text-sm">{progress}%</span>
     </div>
-    <div className="flex h-1 gap-2 w-full bg-slate-800 rounded-full overflow-hidden">
+    <div className="flex h-3 w-full bg-orange-100/50 rounded-full border border-orange-200/40 p-0.5">
       <div
-        className="bg-sky-500 shadow-[0_0_10px_rgba(14,165,233,0.5)] transition-all duration-500 rounded-full"
+        className="bg-gradient-to-r from-orange-400 to-amber-400 h-full transition-all duration-500 rounded-full"
         style={{ width: `${progress}%` }}
       />
     </div>
@@ -141,11 +141,7 @@ const LoginScreen = ({ onNext }) => {
         const { data, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
-          options: {
-            data: {
-              full_name: fullName.trim()
-            }
-          }
+          options: { data: { full_name: fullName.trim() } }
         });
 
         if (signUpError) throw signUpError;
@@ -160,14 +156,10 @@ const LoginScreen = ({ onNext }) => {
           .eq('id', data.user.id)
           .single();
 
-        if (profileData) {
-          setProfile(profileData);
-        }
+        if (profileData) setProfile(profileData);
 
-        setSuccessMsg("Account created successfully! Let's choose your settings...");
-        setTimeout(() => {
-          onNext();
-        }, 1200);
+        setSuccessMsg("Account created! Let's choose your setup...");
+        setTimeout(() => onNext(), 1200);
       } else {
         const { data, error: loginError } = await supabase.auth.signInWithPassword({
           email,
@@ -175,10 +167,7 @@ const LoginScreen = ({ onNext }) => {
         });
 
         if (loginError) throw loginError;
-
-        if (!data?.user) {
-          throw new Error('Failed to retrieve active user session.');
-        }
+        if (!data?.user) throw new Error('Failed to retrieve active user session.');
 
         const { data: profileData } = await supabase
           .from('profiles')
@@ -186,53 +175,48 @@ const LoginScreen = ({ onNext }) => {
           .eq('id', data.user.id)
           .single();
 
-        if (profileData) {
-          setProfile(profileData);
-        }
+        if (profileData) setProfile(profileData);
 
-        setSuccessMsg('Successfully logged in! Opening your classroom...');
-        setTimeout(() => {
-          onNext();
-        }, 1200);
+        setSuccessMsg('Successfully logged in! Opening classroom...');
+        setTimeout(() => onNext(), 1200);
       }
     } catch (err) {
       console.error(err);
-      setErrorMsg(err.message || 'Login failed. Please check your spelling and password.');
+      setErrorMsg(err.message || 'Authentication failed. Please verify credentials.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative bg-[#0c0f24] text-slate-100 overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(168,85,247,0.12)_0%,transparent_70%)] pointer-events-none" />
+    <div className="min-h-screen flex items-center justify-center p-4 relative bg-[#fcf9f2] text-slate-800 overflow-hidden">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(249,115,22,0.06)_0%,transparent_70%)] pointer-events-none" />
 
-      <GlassCard className="w-full max-w-[480px] p-8 md:p-10 flex flex-col gap-6 border-purple-500/10 bg-[#121635]/60">
-        <div className="flex flex-col items-center gap-3">
-          <div className="flex items-center gap-3 text-purple-400">
-            <Zap className="size-10 fill-purple-400/20" />
-            <h1 className="text-3xl font-extrabold tracking-tight">AeroLearn</h1>
+      <GlassCard className="w-full max-w-[460px] p-8 md:p-10 flex flex-col gap-6 border-orange-200/60 bg-white shadow-xl shadow-orange-950/5">
+        <div className="flex flex-col items-center gap-2">
+          <div className="flex items-center gap-3 text-orange-500">
+            <Zap className="size-9 fill-orange-500/10" />
+            <h1 className="text-3xl font-black tracking-tight text-slate-900">AeroLearn</h1>
           </div>
-          <p className="text-slate-300 text-sm">Welcome, Space Explorer! 💫</p>
+          <p className="text-slate-500 text-sm font-medium">Ready to explore something new? ✨</p>
         </div>
 
         {errorMsg && (
-          <div role="alert" className="p-3.5 rounded-xl border border-rose-500/20 bg-rose-500/10 text-rose-300 text-xs">
+          <div role="alert" className="p-3.5 rounded-xl border-2 border-rose-200 bg-rose-50 text-rose-700 text-xs font-bold">
             ⚠️ {errorMsg}
           </div>
         )}
 
         {successMsg && (
-          <div role="alert" className="p-3.5 rounded-xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-300 text-xs">
+          <div role="alert" className="p-3.5 rounded-xl border-2 border-emerald-200 bg-emerald-50 text-emerald-700 text-xs font-bold">
             ✓ {successMsg}
           </div>
         )}
 
-        <form onSubmit={handleAuthSubmit} className="flex flex-col gap-5">
+        <form onSubmit={handleAuthSubmit} className="flex flex-col gap-4">
           {isSignUp && (
-            <div className="flex flex-col gap-2">
-              <label htmlFor="name-input" className="text-xs font-bold text-purple-300 flex items-center gap-2">
-                <div className="w-1.5 h-3.5 bg-purple-500 rounded-full" />
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="name-input" className="text-xs font-extrabold text-slate-700 flex items-center gap-2">
                 Your Name
               </label>
               <input
@@ -243,18 +227,17 @@ const LoginScreen = ({ onNext }) => {
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="Write your name here"
-                className="w-full bg-[#0b0d19]/80 border-2 border-purple-500/10 p-3.5 rounded-2xl focus:outline-none focus:ring-2 focus:ring-purple-400 text-sm text-white"
+                className="w-full bg-slate-50 border-2 border-orange-100 p-3 rounded-xl focus:outline-none focus:border-orange-400 text-sm text-slate-900 transition-all"
               />
             </div>
           )}
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="email-input" className="text-xs font-bold text-purple-300 flex items-center gap-2">
-              <div className="w-1.5 h-3.5 bg-purple-500 rounded-full" />
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="email-input" className="text-xs font-extrabold text-slate-700 flex items-center gap-2">
               Your Email Address ✉️
             </label>
             <div className="relative">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-purple-300/60" />
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
               <input
                 id="email-input"
                 type="email"
@@ -263,20 +246,17 @@ const LoginScreen = ({ onNext }) => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="name@email.com"
-                className="w-full bg-[#0b0d19]/80 border-2 border-purple-500/10 p-3.5 pl-12 rounded-2xl focus:outline-none focus:ring-2 focus:ring-purple-400 text-sm text-white"
+                className="w-full bg-slate-50 border-2 border-orange-100 p-3 pl-11 rounded-xl focus:outline-none focus:border-orange-400 text-sm text-slate-900 transition-all"
               />
             </div>
           </div>
 
-          <div className="flex flex-col gap-2">
-            <div className="flex justify-between items-center">
-              <label htmlFor="pass-input" className="text-xs font-bold text-purple-300 flex items-center gap-2">
-                <div className="w-1.5 h-3.5 bg-purple-500 rounded-full" />
-                Your Secret Password 🔑
-              </label>
-            </div>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="pass-input" className="text-xs font-extrabold text-slate-700 flex items-center gap-2">
+              Your Password 🔑
+            </label>
             <div className="relative">
-              <Key className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-purple-300/60" />
+              <Key className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
               <input
                 id="pass-input"
                 type="password"
@@ -285,24 +265,24 @@ const LoginScreen = ({ onNext }) => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••••••"
-                className="w-full bg-[#0b0d19]/80 border-2 border-purple-500/10 p-3.5 pl-12 rounded-2xl focus:outline-none focus:ring-2 focus:ring-purple-400 text-sm text-white"
+                className="w-full bg-slate-50 border-2 border-orange-100 p-3 pl-11 rounded-xl focus:outline-none focus:border-orange-400 text-sm text-slate-900 transition-all"
               />
             </div>
           </div>
 
-          <CyberButton type="submit" disabled={loading} className="w-full mt-2 bg-purple-600 hover:bg-purple-500" icon={LogIn}>
-            {loading ? 'Opening Your Space... 🚀' : isSignUp ? 'Sign Up & Start! 🚀' : 'Login & Start! 🚀'}
+          <CyberButton type="submit" disabled={loading} className="w-full mt-3">
+            {loading ? 'Entering Classroom... ✨' : isSignUp ? 'Create Account & Start' : 'Login & Open System'}
           </CyberButton>
         </form>
 
-        <div className="flex items-center gap-4">
-          <div className="flex-1 h-px bg-purple-500/10" />
-          <span className="text-xs font-bold text-purple-300/40">Welcome! 🌟</span>
-          <div className="flex-1 h-px bg-purple-500/10" />
+        <div className="flex items-center gap-4 py-1">
+          <div className="flex-1 h-0.5 bg-slate-100" />
+          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Join Us</span>
+          <div className="flex-1 h-0.5 bg-slate-100" />
         </div>
 
-        <p className="text-center text-sm text-slate-300">
-          {isSignUp ? 'Already registered?' : 'New here?'}
+        <p className="text-center text-sm text-slate-600 font-medium">
+          {isSignUp ? 'Already have an account?' : 'New to AeroLearn?'}
           <button
             type="button"
             onClick={() => {
@@ -310,9 +290,9 @@ const LoginScreen = ({ onNext }) => {
               setErrorMsg('');
               setSuccessMsg('');
             }}
-            className="text-purple-400 hover:underline font-bold ml-2"
+            className="text-orange-500 hover:text-orange-600 font-extrabold ml-1.5 underline underline-offset-2"
           >
-            {isSignUp ? 'Login Here 🔑' : 'Create Account 🚀'}
+            {isSignUp ? 'Login Here' : 'Sign Up Free'}
           </button>
         </p>
       </GlassCard>
@@ -321,18 +301,18 @@ const LoginScreen = ({ onNext }) => {
 };
 
 const Registration0 = ({ onNext }) => (
-  <div className="min-h-screen flex items-center justify-center p-4 bg-[#0c0f24] text-slate-100">
-    <div className="w-full max-w-[640px] flex flex-col gap-10">
-      <ProgressIndicator phase="Step 1: Your Account 🌟" label="Account Settings" progress={25} />
+  <div className="min-h-screen flex items-center justify-center p-4 bg-[#fcf9f2] text-slate-800">
+    <div className="w-full max-w-[600px] flex flex-col gap-10">
+      <ProgressIndicator phase="Step 1" label="Account Configuration" progress={25} />
 
-      <GlassCard className="p-6 md:p-10 flex flex-col gap-8 bg-[#121635]/60 border-purple-500/10">
-        <p className="text-slate-200 text-base leading-relaxed">
-          Welcome! Your account is created. Now we will choose the best settings to make reading, listening, and learning super easy and fun for you!
+      <GlassCard className="p-8 flex flex-col gap-6 bg-white border-orange-100 shadow-xl shadow-orange-950/4">
+        <p className="text-slate-600 text-base leading-relaxed font-medium">
+          Welcome on board! Your active profile has been built. Let's calibrate your screen layout interfaces to ensure parsing scientific and text documentation flows flawlessly.
         </p>
 
-        <div className="flex justify-between items-center pt-6 border-t border-purple-500/10">
-          <CyberButton variant="ghost">Go Back ⬅️</CyberButton>
-          <CyberButton onClick={onNext} icon={ArrowRight} className="bg-purple-600 hover:bg-purple-500">Let's Start! 🚀</CyberButton>
+        <div className="flex justify-between items-center pt-4 border-t border-slate-100">
+          <CyberButton variant="ghost">Go Back</CyberButton>
+          <CyberButton onClick={onNext} icon={ArrowRight}>Let's Set It Up</CyberButton>
         </div>
       </GlassCard>
     </div>
@@ -340,36 +320,36 @@ const Registration0 = ({ onNext }) => (
 );
 
 const Registration1 = ({ onNext }) => (
-  <div className="max-w-[800px] mx-auto py-16 px-4 flex flex-col gap-12 text-slate-100">
-    <ProgressIndicator phase="Step 2: Your Language 🗣️" label="Choose Your Language" progress={50} />
-    <p className="text-lg text-slate-300 -mt-6">Choose the language you speak best so we can translate books and videos for you.</p>
+  <div className="max-w-[800px] mx-auto py-16 px-4 flex flex-col gap-8 text-slate-800">
+    <ProgressIndicator phase="Step 2" label="Choose Learning Language" progress={50} />
+    <p className="text-lg text-slate-600 -mt-2 font-medium">Set up translation baselines to optimize structured document transformations.</p>
 
-    <div className="flex flex-col gap-4">
-      <label className="text-sm font-bold text-purple-300">Search for your language:</label>
+    <div className="flex flex-col gap-3">
+      <label className="text-sm font-extrabold text-slate-700">Search for your dialect or sign format:</label>
       <div className="relative">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-purple-300/60" />
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-slate-400" />
         <input
           type="text"
-          placeholder="e.g., English, Spanish, ASL"
-          className="w-full bg-[#121635]/80 border-2 border-purple-500/10 rounded-2xl p-4 pl-12 focus:outline-none focus:ring-2 focus:ring-purple-400 text-white"
+          placeholder="Search languages..."
+          className="w-full bg-white border-2 border-orange-100 rounded-2xl p-3.5 pl-12 focus:outline-none focus:border-orange-400 text-slate-900 shadow-xs"
         />
       </div>
     </div>
 
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between border-b border-purple-500/10 pb-2">
-        <h2 className="text-xl font-bold">Choose Your Language:</h2>
-        <span className="text-[10px] bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2.5 py-1 uppercase font-mono rounded-lg">Required</span>
+    <div className="flex flex-col gap-4 mt-2">
+      <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+        <h2 className="text-lg font-bold text-slate-800">Popular Context Paths:</h2>
+        <span className="text-[10px] bg-orange-50 text-orange-700 border-2 border-orange-100 px-2.5 py-0.5 font-mono rounded-lg font-black uppercase">Required</span>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {['English (en)', 'Spanish (es)', 'French (fr)', 'German (de)', 'Japanese (ja)', 'Chinese (zh)'].map((lang, i) => (
           <button
             key={lang}
             className={cn(
-              "p-5 text-left rounded-2xl border-2 transition-all duration-200",
+              "p-4 text-left rounded-xl border-2 transition-all font-extrabold text-sm",
               i === 0
-                ? "border-purple-500 bg-purple-500/10 text-white"
-                : "border-purple-500/10 bg-[#121635]/40 text-slate-300 hover:border-purple-400/50"
+                ? "border-orange-400 bg-orange-50/50 text-orange-700"
+                : "border-slate-100 bg-white text-slate-600 hover:border-slate-200"
             )}
           >
             {lang}
@@ -378,36 +358,36 @@ const Registration1 = ({ onNext }) => (
       </div>
     </div>
 
-    <div className="flex justify-between items-center pt-8 border-t border-purple-500/10 mt-auto">
-      <p className="text-xs text-slate-400 max-w-sm">Language settings configure translation engines across the document parser modules.</p>
-      <CyberButton onClick={onNext} icon={ArrowRight} className="bg-purple-600 hover:bg-purple-500">Save and Continue ➡️</CyberButton>
+    <div className="flex justify-between items-center pt-6 border-t border-slate-100 mt-4">
+      <p className="text-xs text-slate-400 font-medium">Linguistic settings control core data pipeline overrides automatically.</p>
+      <CyberButton onClick={onNext} icon={ArrowRight}>Save Layout</CyberButton>
     </div>
   </div>
 );
 
 const Registration2 = ({ onNext, profile, togglePreference }) => {
   return (
-    <div className="max-w-[640px] mx-auto py-16 px-4 flex flex-col gap-12 text-slate-100">
-      <ProgressIndicator phase="Step 3: Easy Reading Settings 🌈" label="Easy Reading Settings" progress={75} />
-      <p className="text-slate-300 text-lg -mt-6">Choose how you want to read. We can change the text layout, font size, and contrast to make it super easy for you to see and learn.</p>
+    <div className="max-w-[640px] mx-auto py-16 px-4 flex flex-col gap-8 text-slate-800">
+      <ProgressIndicator phase="Step 3" label="Adaptive Workspace Controls" progress={75} />
+      <p className="text-slate-600 text-lg -mt-2 font-medium">Activate real-time interface transformations tailored to individual learning preferences.</p>
 
       <div className="flex flex-col gap-4">
         <GlassCard
           active={profile?.dyslexia_friendly}
           onClick={() => togglePreference('dyslexia_friendly', profile?.dyslexia_friendly)}
-          className="p-6 cursor-pointer border-purple-500/10 bg-[#121635]/60 hover:border-purple-400/30"
+          className="p-5 cursor-pointer"
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className={cn("size-10 rounded-full flex items-center justify-center", profile?.dyslexia_friendly ? "bg-purple-500/20 text-purple-400" : "bg-[#0b0d19] text-slate-400")}>
-                <Zap className="size-6" />
+              <div className={cn("size-10 rounded-full flex items-center justify-center border-2", profile?.dyslexia_friendly ? "bg-orange-50 border-orange-300 text-orange-600" : "bg-slate-50 border-slate-100 text-slate-500")}>
+                <Zap className="size-5" />
               </div>
               <div>
-                <span className="text-lg font-bold block">Special Dyslexia Font 📖</span>
-                <span className="text-xs text-slate-300 mt-1 block">Makes letters easier to read so they don't jump around on the screen.</span>
+                <span className="text-base font-extrabold block text-slate-800">Dyslexia Layout Adjustments 📖</span>
+                <span className="text-xs text-slate-500 mt-0.5 block">Alters character letter-spacing metrics to aid layout readability.</span>
               </div>
             </div>
-            <div className={cn("w-10 h-5 rounded-full relative transition-colors", profile?.dyslexia_friendly ? "bg-purple-500" : "bg-slate-700")}>
+            <div className={cn("w-10 h-5 rounded-full relative transition-colors", profile?.dyslexia_friendly ? "bg-orange-500" : "bg-slate-200")}>
               <div className={cn("absolute top-1 size-3 bg-white rounded-full transition-all", profile?.dyslexia_friendly ? "right-1" : "left-1")} />
             </div>
           </div>
@@ -416,19 +396,19 @@ const Registration2 = ({ onNext, profile, togglePreference }) => {
         <GlassCard
           active={profile?.high_contrast}
           onClick={() => togglePreference('high_contrast', profile?.high_contrast)}
-          className="p-6 cursor-pointer border-purple-500/10 bg-[#121635]/60 hover:border-purple-400/30"
+          className="p-5 cursor-pointer"
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className={cn("size-10 rounded-full flex items-center justify-center", profile?.high_contrast ? "bg-purple-500/20 text-purple-400" : "bg-[#0b0d19] text-slate-400")}>
-                <Accessibility className="size-6" />
+              <div className={cn("size-10 rounded-full flex items-center justify-center border-2", profile?.high_contrast ? "bg-orange-50 border-orange-300 text-orange-600" : "bg-slate-50 border-slate-100 text-slate-500")}>
+                <Accessibility className="size-5" />
               </div>
               <div>
-                <span className="text-lg font-bold block">Super Bright Contrast 🎨</span>
-                <span className="text-xs text-slate-300 mt-1 block">Makes text pop out clearly against the background for easy reading.</span>
+                <span className="text-base font-extrabold block text-slate-800">High Contrast Contrast Override 🎨</span>
+                <span className="text-xs text-slate-500 mt-0.5 block">Forces severe textual split parameters to limit parsing fatigue.</span>
               </div>
             </div>
-            <div className={cn("w-10 h-5 rounded-full relative transition-colors", profile?.high_contrast ? "bg-purple-500" : "bg-slate-700")}>
+            <div className={cn("w-10 h-5 rounded-full relative transition-colors", profile?.high_contrast ? "bg-orange-500" : "bg-slate-200")}>
               <div className={cn("absolute top-1 size-3 bg-white rounded-full transition-all", profile?.high_contrast ? "right-1" : "left-1")} />
             </div>
           </div>
@@ -437,19 +417,19 @@ const Registration2 = ({ onNext, profile, togglePreference }) => {
         <GlassCard
           active={profile?.sign_language_preference}
           onClick={() => togglePreference('sign_language_preference', profile?.sign_language_preference)}
-          className="p-6 cursor-pointer border-purple-500/10 bg-[#121635]/60 hover:border-purple-400/30"
+          className="p-5 cursor-pointer"
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className={cn("size-10 rounded-full flex items-center justify-center", profile?.sign_language_preference ? "bg-purple-500/20 text-purple-400" : "bg-[#0b0d19] text-slate-400")}>
-                <Globe className="size-6" />
+              <div className={cn("size-10 rounded-full flex items-center justify-center border-2", profile?.sign_language_preference ? "bg-orange-50 border-orange-300 text-orange-600" : "bg-slate-50 border-slate-100 text-slate-500")}>
+                <Globe className="size-5" />
               </div>
               <div>
-                <span className="text-lg font-bold block">Sign Language Helpers 🤟</span>
-                <span className="text-xs text-slate-300 mt-1 block">Adds a friendly virtual sign language helper next to videos.</span>
+                <span className="text-base font-extrabold block text-slate-800">Sign Helper Integrations 🤟</span>
+                <span className="text-xs text-slate-500 mt-0.5 block">Mounts supplementary sign translation widgets adjacent to video media channels.</span>
               </div>
             </div>
-            <div className={cn("w-10 h-5 rounded-full relative transition-colors", profile?.sign_language_preference ? "bg-purple-500" : "bg-slate-700")}>
+            <div className={cn("w-10 h-5 rounded-full relative transition-colors", profile?.sign_language_preference ? "bg-orange-500" : "bg-slate-200")}>
               <div className={cn("absolute top-1 size-3 bg-white rounded-full transition-all", profile?.sign_language_preference ? "right-1" : "left-1")} />
             </div>
           </div>
@@ -458,90 +438,85 @@ const Registration2 = ({ onNext, profile, togglePreference }) => {
             <motion.div
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
-              className="mt-6 pt-6 border-t border-purple-500/20 flex flex-col gap-6"
+              className="mt-4 pt-4 border-t border-slate-100 flex flex-col gap-3"
               onClick={(e) => e.stopPropagation()}
             >
-              <p className="text-slate-300 text-xs">Choose your sign language style:</p>
-              <div className="flex flex-col gap-3">
-                <span className="text-xs font-bold text-purple-300">Sign Language Variant</span>
-                <div className="flex flex-wrap gap-2">
-                  {['ASL (American)', 'BSL (British)', 'ISL (Irish)'].map((l, i) => (
-                    <button
-                      key={l}
-                      className={cn("px-4 py-2 text-xs border rounded-lg", i === 0 ? "border-purple-500 bg-purple-500/20 text-purple-400" : "border-purple-500/10 text-slate-300")}
-                    >
-                      {l}
-                    </button>
-                  ))}
-                </div>
+              <p className="text-slate-700 text-xs font-bold">Select Active Format:</p>
+              <div className="flex gap-2">
+                {['ASL (American)', 'BSL (British)', 'ISL (Irish)'].map((l, i) => (
+                  <button
+                    key={l}
+                    className={cn("px-3 py-1.5 text-xs border rounded-lg font-bold", i === 0 ? "border-orange-300 bg-orange-50 text-orange-700" : "border-slate-200 text-slate-600 bg-white")}
+                  >
+                    {l}
+                  </button>
+                ))}
               </div>
             </motion.div>
           )}
         </GlassCard>
       </div>
 
-      <CyberButton className="w-full mt-4 bg-purple-600 hover:bg-purple-500" onClick={onNext}>
-        Go to Dashboard 🚀
+      <CyberButton className="w-full mt-2" onClick={onNext}>
+        Proceed to Control Deck
       </CyberButton>
     </div>
   );
 };
 
 const Registration3 = ({ onNext, onPrev, profile, togglePreference }) => (
-  <div className="max-w-[800px] mx-auto py-16 px-4 flex flex-col gap-12 text-slate-100">
-    <ProgressIndicator phase="Step 4: Screen Settings 📺" label="Screen & Device Settings" progress={100} />
-    <p className="text-lg text-slate-300 -mt-6">Choose your screen type and speed options so the system works best on your device.</p>
+  <div className="max-w-[800px] mx-auto py-16 px-4 flex flex-col gap-8 text-slate-800">
+    <ProgressIndicator phase="Step 4" label="Device Framework Analytics" progress={100} />
+    <p className="text-lg text-slate-600 -mt-2 font-medium">Calibrate telemetry endpoints to match operational processing parameters.</p>
 
-    <form className="flex flex-col gap-12" onSubmit={(e) => { e.preventDefault(); onNext(); }}>
-      <div className="flex flex-col gap-4">
-        <label className="text-sm font-bold text-purple-300">What device are you using?</label>
+    <form className="flex flex-col gap-8" onSubmit={(e) => { e.preventDefault(); onNext(); }}>
+      <div className="flex flex-col gap-2">
+        <label className="text-sm font-extrabold text-slate-700">Hardware Profile Type:</label>
         <div className="relative">
-          <select className="w-full bg-[#121635] border border-purple-500/10 text-white p-4 rounded-2xl appearance-none focus:ring-2 focus:ring-purple-400 focus:outline-none transition-all">
+          <select className="w-full bg-white border border-slate-200 text-slate-800 p-3.5 rounded-xl appearance-none focus:outline-none focus:border-orange-400 font-bold shadow-xs text-sm">
             <option>Computer or Laptop 💻</option>
             <option>Mobile Phone or Tablet 📱</option>
           </select>
-          <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-purple-300" />
+          <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 size-4" />
         </div>
       </div>
 
-      <div className="flex flex-col gap-4">
-        <label className="text-sm font-bold text-purple-300">Internet Sync Style:</label>
+      <div className="flex flex-col gap-2">
+        <label className="text-sm font-extrabold text-slate-700">Bandwidth Profiler:</label>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <GlassCard active className="p-6 cursor-pointer flex gap-4 border-purple-500/30 bg-[#121635]/80 hover:border-purple-400/50">
-            <div className="size-5 rounded-full border-2 border-purple-500 flex items-center justify-center"><div className="size-2.5 bg-purple-500 rounded-full" /></div>
+          <GlassCard active className="p-5 cursor-pointer flex gap-4 border-orange-200 bg-orange-50/20">
+            <div className="size-5 rounded-full border-2 border-orange-500 flex items-center justify-center"><div className="size-2.5 bg-orange-500 rounded-full" /></div>
             <div>
-              <h4 className="font-bold">Fast Video Sync ⚡</h4>
-              <p className="text-sm text-slate-300 mt-1">Best for high-speed internet. Shows everything instantly.</p>
+              <h4 className="font-extrabold text-slate-900 text-sm">Standard High-Speed Profile ⚡</h4>
+              <p className="text-xs text-slate-600 mt-0.5">Executes multi-threaded streaming matrix assets seamlessly.</p>
             </div>
           </GlassCard>
-          <GlassCard className="p-6 cursor-pointer flex gap-4 border-purple-500/10 bg-[#121635]/40 hover:border-purple-400/50">
-            <div className="size-5 rounded-full border-2 border-purple-500/20" />
+          <GlassCard className="p-5 cursor-pointer flex gap-4">
+            <div className="size-5 rounded-full border-2 border-slate-200" />
             <div>
-              <h4 className="font-bold">Saver Sync Mode 💾</h4>
-              <p className="text-sm text-slate-300 mt-1">Best for slower internet. Saves your internet data.</p>
+              <h4 className="font-extrabold text-slate-700 text-sm">Eco-Saver Sync Mode 💾</h4>
+              <p className="text-xs text-slate-500 mt-0.5">Truncates visual layout elements to minimize network transmission limits.</p>
             </div>
           </GlassCard>
         </div>
       </div>
 
-      <div className="flex flex-col gap-4">
-        <label className="text-sm font-bold text-purple-300">Boost Screen Brightness:</label>
-        <div className="flex flex-col gap-4">
-          <GlassCard className="p-6 flex items-center justify-between border-purple-500/10 bg-[#121635]/60 hover:border-purple-400/30" onClick={() => togglePreference('high_contrast', profile?.high_contrast)}>
-            <div className="pr-4">
-              <h4 className="font-bold">Boost Screen Brightness 🌟</h4>
-              <p className="text-sm text-slate-300 mt-1">Makes the screen extra clear and easy to read.</p>
-            </div>
-            <div className={cn("w-10 h-5 rounded-full relative transition-colors", profile?.high_contrast ? "bg-purple-500" : "bg-slate-700")}>
-              <div className={cn("absolute top-1 size-3 bg-white rounded-full transition-all", profile?.high_contrast ? "right-1" : "left-1")} />
-            </div>
-          </GlassCard>
-        </div>
+      <div className="flex flex-col gap-2">
+        <label className="text-sm font-extrabold text-slate-700">Contrast Boosting Adjustments:</label>
+        <GlassCard className="p-5 flex items-center justify-between bg-white border-slate-200" onClick={() => togglePreference('high_contrast', profile?.high_contrast)}>
+          <div>
+            <h4 className="font-extrabold text-slate-900 text-sm">Maximize Layout Backlight 🌟</h4>
+            <p className="text-xs text-slate-500 mt-0.5">Expands text edge parameters to ensure effortless data visualization.</p>
+          </div>
+          <div className={cn("w-10 h-5 rounded-full relative transition-colors", profile?.high_contrast ? "bg-orange-500" : "bg-slate-200")}>
+            <div className={cn("absolute top-1 size-3 bg-white rounded-full transition-all", profile?.high_contrast ? "right-1" : "left-1")} />
+          </div>
+        </GlassCard>
       </div>
 
-      <div className="flex justify-between items-center mt-8 pt-8 border-t border-purple-500/10">
-        <CyberButton variant="outline" onClick={onPrev}>Go Back ⬅️</CyberButton>
-        <CyberButton type="submit" className="bg-purple-600 hover:bg-purple-500">All Done! Let's Enter! 🎉</CyberButton>
+      <div className="flex justify-between items-center mt-4 pt-6 border-t border-slate-200">
+        <CyberButton variant="secondary" onClick={onPrev}>Back</CyberButton>
+        <CyberButton type="submit">Launch Dashboard</CyberButton>
       </div>
     </form>
   </div>
@@ -554,20 +529,20 @@ const Dashboard = ({ onNavigate, profile }) => {
   };
 
   return (
-    <div className="flex h-screen bg-[#0c0f24] text-white overflow-hidden">
-      {/* Sidebar */}
-      <aside className="w-[280px] bg-[#121635] border-r border-purple-500/10 p-6 flex flex-col gap-10">
+    <div className="flex h-screen bg-[#fcf9f2] text-slate-800 overflow-hidden">
+      {/* Sidebar navigation deck component wrapper */}
+      <aside className="w-[270px] bg-white border-r-2 border-orange-100/60 p-6 flex flex-col gap-8 shadow-xs">
         <div className="flex items-center gap-3">
-          <div className="size-10 bg-purple-500/10 rounded-xl border border-purple-500/20 flex items-center justify-center">
-            <Zap className="size-6 text-purple-400 fill-purple-400/20" />
+          <div className="size-9 bg-orange-50 rounded-xl border-2 border-orange-100 flex items-center justify-center shadow-xs">
+            <Zap className="size-5 text-orange-500 fill-orange-500/10" />
           </div>
           <div>
-            <h2 className="font-extrabold text-white text-lg leading-tight">AeroLearn</h2>
-            <p className="text-[10px] text-purple-300/60 font-mono tracking-wider uppercase">AI-Powered Adaptive Learning Control Deck</p>
+            <h2 className="font-black text-slate-900 text-lg leading-tight">AeroLearn</h2>
+            <p className="text-[10px] text-slate-400 font-mono font-bold tracking-wider uppercase">Adaptive Ingestion Suite</p>
           </div>
         </div>
 
-        <nav className="flex flex-col gap-2">
+        <nav className="flex flex-col gap-1">
           {[
             { icon: LayoutDashboard, label: 'Control Deck', active: true },
             { icon: FileText, label: 'Document Lab', onClick: () => onNavigate('uploads') },
@@ -580,64 +555,64 @@ const Dashboard = ({ onNavigate, profile }) => {
               key={item.label}
               onClick={item.onClick}
               className={cn(
-                "flex items-center gap-4 px-4 py-3 rounded-xl transition-all cursor-pointer font-bold text-sm text-left border-l-4",
+                "flex items-center gap-3.5 px-4 py-2.5 rounded-xl transition-all font-extrabold text-sm text-left border-2 border-transparent",
                 item.active
-                  ? "bg-purple-500/10 text-purple-400 border-l-purple-500"
-                  : "text-slate-300 border-l-transparent hover:bg-white/5 hover:text-white"
+                  ? "bg-orange-500/10 text-orange-700 border-orange-200/50"
+                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
               )}
             >
-              <item.icon className="size-5" />
+              <item.icon className="size-4.5 text-slate-500" />
               <span>{item.label}</span>
             </button>
           ))}
         </nav>
 
-        <div className="mt-auto pt-6 border-t border-purple-500/10">
+        <div className="mt-auto pt-4 border-t border-slate-100">
           <button
             onClick={handleLogout}
-            className="w-full py-2.5 bg-[#0b0d19] hover:bg-rose-500/10 text-slate-300 hover:text-rose-400 border border-purple-500/10 hover:border-rose-500/20 text-xs font-bold uppercase rounded-xl transition-all"
+            className="w-full py-2 bg-white hover:bg-rose-50 text-slate-600 hover:text-rose-600 border-2 border-slate-200 hover:border-rose-200 text-xs font-bold uppercase rounded-xl transition-all shadow-xs"
           >
-            Clear clearances (Log Out)
+            Log Out Session
           </button>
         </div>
       </aside>
 
-      {/* Main Panel */}
-      <main className="flex-1 overflow-y-auto p-10 flex flex-col gap-10 relative">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(168,85,247,0.05)_0%,transparent_70%)] pointer-events-none" />
+      {/* Main Panel Operations Hub */}
+      <main className="flex-1 overflow-y-auto p-8 md:p-10 flex flex-col gap-8 relative">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(249,115,22,0.03)_0%,transparent_70%)] pointer-events-none" />
 
         <header className="flex justify-between items-center relative z-10">
-          <h1 className="text-3xl font-extrabold flex items-center gap-3">
-            <Layers className="text-purple-400 size-7" />
-            AeroLearn Control Deck
+          <h1 className="text-2xl font-black flex items-center gap-3 text-slate-900">
+            <Layers className="text-orange-500 size-6" />
+            Classroom Operations Deck
           </h1>
           <div className="flex items-center gap-4">
-            <div className="relative w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-purple-300/60" />
+            <div className="relative w-60">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
               <input
                 type="text"
-                placeholder="Query system files..."
-                className="w-full bg-[#121635] border border-purple-500/10 rounded-xl p-2 pl-10 text-xs focus:ring-2 focus:ring-purple-400 text-white"
+                placeholder="Find study modules..."
+                className="w-full bg-white border-2 border-orange-100 rounded-xl p-1.5 pl-9 text-xs text-slate-800 focus:outline-none focus:border-orange-400 transition-all shadow-xs"
               />
             </div>
-            <div className="size-10 bg-[#121635] rounded-full overflow-hidden border border-purple-500/10">
-              <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=AeroLearn" alt="Profile Avatar" />
+            <div className="size-9 bg-white rounded-full overflow-hidden border-2 border-orange-100 shadow-xs">
+              <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=AeroLearn" alt="Avatar" />
             </div>
           </div>
         </header>
 
-        <section className="flex items-center gap-6 bg-[#121635]/20 border border-purple-500/10 p-6 rounded-2xl relative z-10">
-          <div className="size-24 rounded-full overflow-hidden border-4 border-purple-500/20 flex-shrink-0">
-            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=AeroLearn" alt="Profile" className="bg-[#121635]" />
+        <section className="flex items-center gap-6 bg-white border-2 border-orange-100/70 p-6 rounded-2xl relative z-10 shadow-sm">
+          <div className="size-20 rounded-full overflow-hidden border-4 border-orange-50/50 flex-shrink-0 shadow-xs">
+            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=AeroLearn" alt="Profile" className="bg-slate-50" />
           </div>
           <div>
-            <h2 className="text-3xl font-extrabold text-white">Welcome back, Space Explorer! 💫</h2>
-            <p className="text-slate-300 text-sm mt-1">AI-Powered Adaptive Learning Control Deck</p>
+            <h2 className="text-2xl font-black text-slate-900">Welcome back, Space Explorer! 💫</h2>
+            <p className="text-slate-500 text-sm mt-0.5 font-medium">Inclusive Adaptive Processing System Stack Active</p>
           </div>
         </section>
 
-        <section className="flex flex-col gap-4 relative z-10">
-          <h3 className="font-extrabold text-lg text-white">Core Learning Spaces</h3>
+        <section className="flex flex-col gap-3 relative z-10">
+          <h3 className="font-black text-base text-slate-800 uppercase tracking-wider">Core Learning Spaces</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
               {
@@ -662,22 +637,22 @@ const Dashboard = ({ onNavigate, profile }) => {
               <button
                 key={item.label}
                 onClick={item.onClick}
-                className="flex flex-col p-6 rounded-2xl border border-purple-500/10 bg-[#121635]/30 text-left hover:border-purple-400/50 hover:bg-[#121635]/50 transition-all duration-300 group"
+                className="flex flex-col p-6 rounded-2xl border-2 border-orange-100/80 bg-white text-left hover:border-orange-400 hover:shadow-md transition-all duration-300 group shadow-xs"
               >
-                <div className="size-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center mb-4 group-hover:scale-105 transition-transform duration-200">
-                  <item.icon className="size-6 text-purple-400" />
+                <div className="size-11 rounded-xl bg-orange-50 border-2 border-orange-100/50 flex items-center justify-center mb-4 group-hover:scale-105 transition-all">
+                  <item.icon className="size-5 text-orange-500" />
                 </div>
-                <span className="font-extrabold text-lg text-white block mb-2">{item.label}</span>
-                <span className="text-xs text-slate-300 leading-relaxed block">{item.desc}</span>
+                <span className="font-black text-lg text-slate-900 block mb-1.5">{item.label}</span>
+                <span className="text-xs text-slate-500 leading-relaxed block font-medium">{item.desc}</span>
               </button>
             ))}
           </div>
         </section>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 relative z-10">
-          <div className="flex flex-col gap-6 lg:col-span-2">
-            <h3 className="font-extrabold text-lg text-white">Active Synapse Pathways</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 p-6 bg-[#121635]/20 border border-purple-500/10 rounded-2xl">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 relative z-10">
+          <div className="flex flex-col gap-3 lg:col-span-2">
+            <h3 className="font-black text-base text-slate-800 uppercase tracking-wider">Active Synapse Pathways</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 p-5 bg-white border-2 border-orange-100/60 rounded-2xl shadow-xs">
               {[
                 { id: 'mod-1', label: 'Document Lab 📄', destination: 'uploads' },
                 { id: 'mod-2', label: 'Notes Vault 💾', destination: 'notes' },
@@ -689,34 +664,30 @@ const Dashboard = ({ onNavigate, profile }) => {
                 <button
                   key={node.id}
                   onClick={() => onNavigate(node.destination)}
-                  className="p-4 bg-[#121635]/60 border border-purple-500/20 hover:border-purple-400 rounded-xl text-center font-mono text-xs font-bold text-purple-300 transition-all hover:scale-105 shadow-md"
+                  className="p-3.5 bg-slate-50 border-2 border-slate-100 hover:border-orange-300 hover:bg-white rounded-xl text-center font-mono text-xs font-bold text-slate-600 transition-all hover:scale-105"
                 >
-                  <div className="size-2 bg-sky-400 rounded-full mx-auto mb-2 animate-pulse" />
+                  <div className="size-2 bg-orange-400 rounded-full mx-auto mb-2 animate-pulse" />
                   {node.label}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* System Feed */}
-          <div className="flex flex-col gap-6 lg:col-span-2">
-            <h3 className="font-extrabold text-lg text-white">AeroLearn Platform Feed</h3>
-            <div className="flex items-center gap-4">
-              <span className="px-3 py-1 rounded text-[10px] font-mono uppercase bg-sky-500/15 border-l-2 border-sky-500 text-sky-400">Activity Log</span>
-            </div>
-            <div className="flex flex-col gap-6 border-l border-slate-800 ml-2 pl-6">
+          <div className="flex flex-col gap-3 lg:col-span-2">
+            <h3 className="font-black text-base text-slate-800 uppercase tracking-wider">System Feed Stream</h3>
+            <div className="flex flex-col gap-5 border-l-2 border-orange-100/80 ml-2 pl-5 mt-1">
               {[
-                { time: '10 Mins Ago', icon: Cpu, content: 'Module <span class="text-sky-400 font-bold">F = ma Momentum</span> simplified and adapted to Tier: simplified.' },
-                { time: '3 Hours Ago', icon: FileText, content: 'Document <span class="text-sky-400 font-bold">Inertial_Frames.pdf</span> processed by Ollama VLM fallback.' },
-                { time: '1 Day Ago', icon: Settings, content: 'Accessibility accommodations toggled. Layout font scales updated.' }
+                { time: '10 Mins Ago', icon: Cpu, content: 'Module <span class="text-orange-600 font-extrabold">F = ma Momentum</span> structurally simplified and layout adapted.' },
+                { time: '3 Hours Ago', icon: FileText, content: 'Document <span class="text-orange-600 font-extrabold">Inertial_Frames.pdf</span> synced using VLM OCR parser rules.' },
+                { time: '1 Day Ago', icon: Settings, content: 'Typographical interface layouts saved across active session parameters.' }
               ].map((item, i) => (
                 <div key={i} className="relative">
-                  <div className={cn("absolute -left-[30px] top-1.5 size-2 rounded-full", i === 0 ? "bg-sky-500" : "bg-slate-700")} />
-                  <div className="flex items-center gap-2 text-[10px] font-mono uppercase text-slate-500 mb-1">
-                    <item.icon className="size-3.5" />
+                  <div className={cn("absolute -left-[27px] top-1.5 size-2 rounded-full", i === 0 ? "bg-orange-500" : "bg-slate-300")} />
+                  <div className="flex items-center gap-2 text-[10px] font-mono uppercase text-slate-400 mb-0.5 font-bold">
+                    <item.icon className="size-3.5 text-slate-400" />
                     {item.time}
                   </div>
-                  <p className="text-sm text-slate-300" dangerouslySetInnerHTML={{ __html: item.content }} />
+                  <p className="text-sm text-slate-600 font-medium leading-relaxed" dangerouslySetInnerHTML={{ __html: item.content }} />
                 </div>
               ))}
             </div>
@@ -727,85 +698,189 @@ const Dashboard = ({ onNavigate, profile }) => {
   );
 };
 
-const HiveScreen = ({ onBack }) => (
-  <div className="min-h-screen bg-slate-950 text-white">
-    <header className="border-b border-slate-800 p-6 flex justify-between items-center bg-slate-900/30">
-      <div className="flex items-center gap-6">
-        <button onClick={onBack} className="p-2 hover:bg-white/5 rounded-xl"><ArrowLeft className="size-6 text-slate-400 hover:text-sky-400 transition-colors" /></button>
-        <h1 className="text-2xl font-bold flex items-center gap-3">
-          <Zap className="text-sky-400" />
-          Social Knowledge Hive
-        </h1>
+const HiveScreen = ({ onBack }) => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedLanguage, setSelectedLanguage] = useState('English');
+  const [activeFilters, setActiveFilters] = useState({
+    'Dyslexia-Optimized': false,
+    'Deaf-Friendly Captioning': true,
+    'Mobility Grids': false,
+    'Low-Sensory Tiers': false,
+  });
+
+  const initialSummaries = [
+    { 
+      title: 'Classical Inertial Frames Physics Pathways', 
+      rating: '4.8', 
+      tags: ['STEM', 'English'], 
+      category: 'Dyslexia-Optimized',
+      desc: 'Simplifications for linear transformations and vector sums.',
+      translations: {
+        English: { title: 'Classical Inertial Frames Physics Pathways', desc: 'Simplifications for linear transformations and vector sums.' },
+        Spanish: { title: 'Rutas de Física de Marcos Inerciales Clásicos', desc: 'Simplificaciones para transformaciones lineales y sumas vectoriales.' },
+        ASL: { title: '🤟 Classical Physics Frames (Visual Sign Map)', desc: '🤟 High-sign spatial breakdown for physics vector mappings.' }
+      }
+    },
+    { 
+      title: 'Quantum Computing Sensory Tiers', 
+      rating: '4.5', 
+      tags: ['Low-Sensory', 'Spanish'], 
+      category: 'Low-Sensory Tiers',
+      active: true, 
+      desc: 'Step-by-step mathematical procedures containing no visual clutter.',
+      translations: {
+        English: { title: 'Quantum Computing Sensory Tiers', desc: 'Step-by-step mathematical procedures containing no visual clutter.' },
+        Spanish: { title: 'Niveles Sensoriales de Computación Cuántica', desc: 'Procedimientos matemáticos paso a paso sin desorden visual.' },
+        ASL: { title: '🤟 Quantum Computing Steps (Minimalist Signs)', desc: '🤟 Clear, un-cluttered visual sign representations for math tiers.' }
+      }
+    },
+    { 
+      title: 'Neural Systems Audio Maps', 
+      rating: '4.9', 
+      tags: ['Deaf-Friendly', 'English'], 
+      category: 'Deaf-Friendly Captioning',
+      desc: 'Interactive transcripts mapped directly to key visual frames.',
+      translations: {
+        English: { title: 'Neural Systems Audio Maps', desc: 'Interactive transcripts mapped directly to key visual frames.' },
+        Spanish: { title: 'Mapas de Audio de Sistemas Neurales', desc: 'Transcripciones interactivas mapeadas directamente a fotogramas clave.' },
+        ASL: { title: '🤟 Neural Systems Visual Transcripts', desc: '🤟 Sign-caption sequences linked directly to active stream timelines.' }
+      }
+    }
+  ];
+
+  const handleFilterToggle = (filterName) => {
+    setActiveFilters(prev => ({ ...prev, [filterName]: !prev[filterName] }));
+  };
+
+  const filteredSummaries = initialSummaries.filter(note => {
+    const matchesSearch = 
+      note.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      note.desc.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const activeFilterKeys = Object.keys(activeFilters).filter(k => activeFilters[k]);
+    const matchesFilter = activeFilterKeys.length === 0 || activeFilterKeys.includes(note.category);
+
+    return matchesSearch && matchesFilter;
+  });
+
+  return (
+    <div className="min-h-screen bg-[#fcf9f2] text-slate-800">
+      <header className="border-b-2 border-orange-100/60 p-6 flex justify-between items-center bg-white shadow-xs">
+        <div className="flex items-center gap-6">
+          <button onClick={onBack} className="p-2 hover:bg-slate-50 rounded-xl cursor-pointer">
+            <ArrowLeft className="size-6 text-slate-500 hover:text-orange-500 transition-colors" />
+          </button>
+          <h1 className="text-2xl font-black flex items-center gap-3 text-slate-900">
+            <Zap className="text-orange-500" />
+            Social Knowledge Hive
+          </h1>
+        </div>
+      </header>
+
+      <div className="max-w-[1280px] mx-auto p-8 md:p-10 grid grid-cols-12 gap-8 md:gap-10">
+        <aside className="col-span-12 lg:col-span-3 flex flex-col gap-6">
+          <div className="flex flex-col gap-2">
+            <h3 className="text-xs font-mono uppercase tracking-widest text-slate-400 font-bold">Search Library</h3>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-orange-500" />
+              <input 
+                type="text" 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Keywords, headings..." 
+                className="w-full bg-white border-2 border-orange-100 rounded-xl p-2 pl-9 text-sm text-slate-800 focus:outline-none focus:border-orange-400 shadow-xs" 
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-5 p-5 rounded-2xl border-2 border-orange-100/60 bg-white shadow-xs">
+            <h3 className="text-base font-black flex items-center gap-2 text-orange-600 uppercase tracking-wider">
+              <Filter className="size-4" />
+              Adaptive Toggles
+            </h3>
+            <div className="flex flex-col gap-3">
+              {Object.keys(activeFilters).map((filterName) => (
+                <label key={filterName} className="flex items-center gap-3 cursor-pointer group">
+                  <input 
+                    type="checkbox" 
+                    checked={activeFilters[filterName]} 
+                    onChange={() => handleFilterToggle(filterName)}
+                    className="size-4 bg-white border-slate-300 text-orange-500 focus:ring-orange-500 rounded cursor-pointer" 
+                  />
+                  <span className={cn("text-sm transition-colors font-semibold", activeFilters[filterName] ? "text-orange-600" : "text-slate-500 group-hover:text-slate-900")}>
+                    {filterName}
+                  </span>
+                </label>
+              ))}
+            </div>
+            <div className="h-0.5 bg-slate-100 w-full" />
+            
+            <h3 className="text-base font-black flex items-center gap-2 text-orange-600 uppercase tracking-wider">
+              <Globe className="size-4" />
+              Linguistic Roots
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {['English', 'Spanish', 'ASL'].map((lang) => (
+                <button 
+                  key={lang} 
+                  type="button"
+                  onClick={() => setSelectedLanguage(lang)}
+                  className={cn(
+                    "px-3 py-1 rounded-lg text-xs border-2 font-extrabold transition-all", 
+                    selectedLanguage === lang 
+                      ? "border-orange-400 bg-orange-50 text-orange-700 shadow-xs" 
+                      : "border-slate-100 text-slate-500 bg-white hover:border-slate-200 hover:text-slate-800"
+                  )}
+                >
+                  {lang}
+                </button>
+              ))}
+            </div>
+          </div>
+        </aside>
+
+        <section className="col-span-12 lg:col-span-9 flex flex-col gap-6">
+          <div className="flex justify-between items-center">
+            <p className="text-slate-500 font-medium">
+              Showing <span className="text-slate-900 font-extrabold">{filteredSummaries.length}</span> community notes
+            </p>
+            <button className="flex items-center gap-1 text-orange-600 font-bold text-sm">Sort: Recent <ChevronDown className="size-4" /></button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredSummaries.map((note, i) => {
+              const currentText = note.translations[selectedLanguage] || note.translations['English'];
+
+              return (
+                <GlassCard key={i} className={cn("group cursor-pointer flex flex-col p-0 overflow-hidden bg-white border-2 border-orange-100/60 shadow-xs", note.active && "border-orange-400 bg-orange-50/10")}>
+                  <div className="aspect-video bg-slate-100 relative overflow-hidden border-b-2 border-orange-100/40">
+                    <img src={`https://picsum.photos/seed/${i + 22}/400/225`} alt="" className="w-full h-full object-cover opacity-95 group-hover:scale-101 transition-all duration-300" />
+                    <div className="absolute top-2 right-2 bg-white px-2 py-0.5 text-[10px] font-black rounded border-2 border-orange-100 flex items-center gap-1 text-slate-700 shadow-xs">
+                      <Star className="size-3 text-amber-500 fill-amber-500" /> {note.rating}
+                    </div>
+                  </div>
+                  <div className="p-5 flex flex-col gap-2.5 flex-1 bg-white">
+                    <h4 className="font-black text-slate-900 group-hover:text-orange-600 transition-colors duration-200 leading-snug">{currentText.title}</h4>
+                    <p className="text-xs text-slate-500 leading-relaxed font-medium line-clamp-2">{currentText.desc}</p>
+                    <div className="flex gap-2 mt-auto pt-2 items-center">
+                      {note.tags.map(t => <span key={t} className="text-[9px] uppercase font-mono border-l-2 border-orange-400 pl-2 text-slate-400 font-bold">{t}</span>)}
+                      <span className="text-[10px] font-mono text-orange-700 bg-orange-50 border border-orange-100 px-1.5 rounded ml-auto font-bold">{note.category.split('-')[0]}</span>
+                    </div>
+                  </div>
+                </GlassCard>
+              );
+            })}
+            {filteredSummaries.length === 0 && (
+              <div className="col-span-12 text-center py-12 border-2 border-dashed border-orange-200 rounded-2xl text-slate-400 text-sm bg-white shadow-xs font-semibold">
+                No classroom summaries matched your filtering rules. 🪐
+              </div>
+            )}
+          </div>
+        </section>
       </div>
-    </header>
-
-    <div className="max-w-[1280px] mx-auto p-10 grid grid-cols-12 gap-10">
-      <aside className="col-span-3 flex flex-col gap-8">
-        <div className="flex flex-col gap-4">
-          <h3 className="text-xs font-mono uppercase tracking-widest text-slate-500">Search Knowledge</h3>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-sky-400" />
-            <input type="text" placeholder="Keywords, fields..." className="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 pl-10 text-sm focus:ring-1 focus:ring-sky-500 text-white focus:outline-none" />
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-6 p-6 rounded-2xl border border-slate-800 bg-slate-900/20">
-          <h3 className="text-lg font-bold flex items-center gap-2 text-sky-400">
-            <Filter className="size-5" />
-            Adaptive Toggles
-          </h3>
-          <div className="flex flex-col gap-4">
-            {['Dyslexia-Optimized', 'Deaf-Friendly Captioning', 'Mobility Grids', 'Low-Sensory Tiers'].map((f, i) => (
-              <label key={f} className="flex items-center gap-3 cursor-pointer group">
-                <input type="checkbox" checked={i === 1} className="size-4 bg-slate-900 border-slate-700 text-sky-500 focus:ring-sky-500" readOnly />
-                <span className={cn("text-sm transition-colors", i === 1 ? "text-sky-400" : "text-slate-400 group-hover:text-white")}>{f}</span>
-              </label>
-            ))}
-          </div>
-          <div className="h-px bg-slate-800 w-full" />
-          <h3 className="text-lg font-bold flex items-center gap-2 text-sky-400">
-            <Globe className="size-5" />
-            Linguistic Roots
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            {['English', 'Spanish', 'ASL'].map((l, i) => (
-              <button key={l} className={cn("px-3 py-1.5 rounded-lg text-xs border border-l-4 font-bold", i === 1 ? "border-sky-500/30 bg-sky-500/10 border-l-sky-500 text-sky-400" : "border-slate-800 border-l-slate-600 text-slate-400")}>{l}</button>
-            ))}
-          </div>
-        </div>
-      </aside>
-
-      <section className="col-span-9 flex flex-col gap-8">
-        <div className="flex justify-between items-center">
-          <p className="text-slate-400">Showing <span className="text-white font-extrabold">124</span> community summaries</p>
-          <button className="flex items-center gap-2 text-sky-400 font-bold text-sm">Sort by: Recent <ChevronDown className="size-4" /></button>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[
-            { title: 'Classical Inertial Frames Physics Pathways', rating: '4.8', tags: ['STEM', 'English'], desc: 'Simplifications for linear transformations and vector sums.' },
-            { title: 'Quantum Computing Sensory Tiers', rating: '4.5', tags: ['Low-Sensory', 'Spanish'], desc: 'Step-by-step mathematical procedures containing no visual clutter.', active: true },
-            { title: 'Neural Systems Audio Maps', rating: '4.9', tags: ['Deaf-Friendly', 'English'], desc: 'Interactive transcripts mapped directly to key visual frames.' }
-          ].map((note, i) => (
-            <GlassCard key={i} className={cn("group cursor-pointer flex flex-col p-0 overflow-hidden", note.active && "border-sky-500")}>
-              <div className="aspect-video bg-slate-900 relative overflow-hidden">
-                <img src={`https://picsum.photos/seed/${i + 20}/400/225`} alt="" className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-all duration-300" />
-                <div className="absolute top-2 right-2 bg-slate-950/80 backdrop-blur px-2.5 py-1 text-[10px] font-bold rounded flex items-center gap-1"><Star className="size-3 text-yellow-400 fill-yellow-400" /> {note.rating}</div>
-              </div>
-              <div className="p-5 flex flex-col gap-3 flex-1 bg-slate-900/30">
-                <h4 className="font-bold group-hover:text-sky-400 transition-colors duration-200">{note.title}</h4>
-                <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">{note.desc}</p>
-                <div className="flex gap-2 mt-auto">
-                  {note.tags.map(t => <span key={t} className="text-[10px] uppercase font-mono border-l-2 border-sky-500 pl-2 text-slate-400">{t}</span>)}
-                </div>
-              </div>
-            </GlassCard>
-          ))}
-        </div>
-      </section>
     </div>
-  </div>
-);
+  );
+};
 
 const UploadCockpit = ({ onBack }) => {
   const { profile } = useAccessibility();
@@ -850,9 +925,9 @@ const UploadCockpit = ({ onBack }) => {
     } catch (err) {
       console.error(err);
       if (err.message && (err.message.includes('Failed to fetch') || err.message.includes('NetworkError'))) {
-        setDocError('Connection refused: Could not connect to the AeroLearn Core Engine. Please verify the backend is running locally on port 8000.');
+        setDocError('Connection refused: Could not connect to the AeroLearn Core Engine. Verify backend local logs on port 8000.');
       } else {
-        setDocError(err.message || 'An error occurred during document ingestion');
+        setDocError(err.message || 'An error occurred during document ingestion processing');
       }
     } finally {
       setDocLoading(false);
@@ -860,21 +935,21 @@ const UploadCockpit = ({ onBack }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0c0f24] text-white flex flex-col">
-      <header className="border-b border-purple-500/10 p-6 flex justify-between items-center bg-[#121635]/30">
+    <div className="min-h-screen bg-[#fcf9f2] text-slate-800 flex flex-col">
+      <header className="border-b-2 border-orange-100/60 p-6 flex justify-between items-center bg-white shadow-xs">
         <div className="flex items-center gap-6">
-          <button onClick={onBack} className="p-2 hover:bg-white/5 rounded-xl cursor-pointer"><ArrowLeft className="size-6 text-slate-400 hover:text-purple-400 transition-colors" /></button>
-          <h1 className="text-2xl font-bold flex items-center gap-3">
-            <UploadCloud className="text-purple-400" />
+          <button onClick={onBack} className="p-2 hover:bg-slate-50 rounded-xl cursor-pointer"><ArrowLeft className="size-6 text-slate-500 hover:text-orange-500 transition-colors" /></button>
+          <h1 className="text-2xl font-black flex items-center gap-3 text-slate-900">
+            <UploadCloud className="text-orange-500" />
             Document Processing Lab
           </h1>
         </div>
       </header>
 
-      <div className="max-w-[1000px] mx-auto w-full p-10 flex flex-col gap-10">
-        <div className="flex flex-col gap-4">
-          <h2 className="text-lg font-bold">Ingest Academic Materials</h2>
-          <label htmlFor="file-selector" className="border-2 border-dashed border-purple-500/10 p-16 flex flex-col items-center justify-center gap-6 rounded-2xl bg-[#121635]/10 hover:border-purple-400 transition-all cursor-pointer group relative">
+      <div className="max-w-[1000px] mx-auto w-full p-8 md:p-10 flex flex-col gap-8 md:gap-10">
+        <div className="flex flex-col gap-3">
+          <h2 className="text-lg font-black text-slate-800 uppercase tracking-wider">Ingest Inbound Courseware</h2>
+          <label htmlFor="file-selector" className="border-2 border-dashed border-orange-300 p-16 flex flex-col items-center justify-center gap-5 rounded-2xl bg-white hover:border-orange-400 transition-all cursor-pointer shadow-xs relative">
             <input
               type="file"
               id="file-selector"
@@ -885,75 +960,75 @@ const UploadCockpit = ({ onBack }) => {
                 }
               }}
             />
-            <div className="size-20 rounded-full bg-[#121635] border border-purple-500/10 flex items-center justify-center group-hover:bg-purple-500/10 transition-colors">
-              <UploadCloud className="size-10 text-purple-300/60 group-hover:text-purple-400 transition-colors" />
+            <div className="size-16 rounded-full bg-orange-50 border-2 border-orange-100 flex items-center justify-center group-hover:bg-orange-100 transition-colors">
+              <UploadCloud className="size-8 text-orange-400" />
             </div>
             <div className="text-center">
-              <p className="text-xl font-bold">Upload Academic PDF or Image Asset</p>
-              <p className="text-purple-300/60 text-sm mt-1">Drag and drop your file here or click below to browse</p>
+              <p className="text-lg font-black text-slate-800">Upload Text PDF or Scanned Resource Asset</p>
+              <p className="text-slate-400 text-xs mt-0.5 font-medium">Select target file to apply automated simplified summary models</p>
             </div>
-            <div className="py-2.5 px-6 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20 text-xs font-bold uppercase transition-all">
-              Select Academic File
+            <div className="py-2 px-5 rounded-xl bg-orange-50 text-orange-600 border-2 border-orange-100/60 text-xs font-bold uppercase transition-all shadow-xs">
+              Browse Desktop Files
             </div>
           </label>
         </div>
 
         {docLoading && (
-          <div className="flex flex-col items-center justify-center p-8 border border-purple-500/10 rounded-2xl bg-[#121635]/20">
-            <div className="size-10 border-4 border-purple-500/20 border-t-purple-500 rounded-full animate-spin mb-4" />
-            <p className="text-purple-300 font-bold text-sm">Processing document nodes and OCR elements... 🚀</p>
+          <div className="flex flex-col items-center justify-center p-8 border-2 border-orange-100 rounded-2xl bg-white shadow-xs">
+            <div className="size-8 border-4 border-orange-200 border-t-orange-500 rounded-full animate-spin mb-3" />
+            <p className="text-orange-600 font-bold text-xs uppercase tracking-wide">Executing character layout translation algorithms... 🚀</p>
           </div>
         )}
 
         {docError && (
-          <div className="p-4 border border-rose-500/20 rounded-xl bg-rose-500/10 text-rose-400 text-sm">
+          <div className="p-4 border-2 border-rose-200 rounded-xl bg-rose-50 text-rose-700 font-bold text-sm shadow-xs">
             ⚠️ {docError}
           </div>
         )}
 
         {docSuccess && (
-          <div className="p-6 border border-purple-500/30 rounded-2xl bg-[#121635]/45">
-            <div className="flex items-center gap-3 text-purple-400 font-bold text-lg mb-2">
-              <CheckCircle2 className="size-6 text-green-400" />
+          <div className="p-6 border-2 border-orange-100 rounded-2xl bg-white shadow-md">
+            <div className="flex items-center gap-2 text-slate-900 font-black text-lg mb-2">
+              <CheckCircle2 className="size-5 text-emerald-500" />
               Document Simplification Complete! 🎉
             </div>
-            <p className="text-xs text-slate-400 font-mono mb-4">Ingested file: <span className="text-white font-extrabold">{uploadedFile?.name}</span></p>
-            <div className="bg-[#0c0f24] border border-purple-500/10 rounded-xl p-6 text-slate-200 text-sm font-sans leading-relaxed prose prose-invert max-w-none">
+            <p className="text-xs text-slate-400 font-mono mb-4 font-bold">Processed item: <span className="text-slate-700">{uploadedFile?.name}</span></p>
+            <div className="bg-slate-50 border-2 border-slate-100 rounded-xl p-6 text-slate-700 text-sm leading-relaxed prose shadow-inner font-medium">
               <ReactMarkdown>{documentNotes}</ReactMarkdown>
             </div>
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-          <div className="md:col-span-2 flex flex-col gap-6">
-            <h3 className="font-bold flex items-center justify-between">
-              Active Documents
-              <span className="text-xs font-mono text-slate-500">{files.length} ITEMS</span>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="md:col-span-2 flex flex-col gap-5">
+            <h3 className="font-black text-slate-800 text-sm uppercase tracking-wider flex justify-between items-center">
+              Active Dashboard Files
+              <span className="text-xs font-mono text-slate-400 font-bold">{files.length} BUNDLES</span>
             </h3>
             <div className="flex flex-col gap-4">
               {files.map((file, i) => (
-                <GlassCard key={i} className="p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-4">
-                      <div className="size-12 bg-slate-900 border border-slate-800 rounded-xl flex items-center justify-center">
-                        <FileText className={cn("size-6", file.progress === 100 ? "text-sky-400" : "text-slate-500")} />
+                <GlassCard key={i} className="p-5 bg-white border-2 border-orange-100/60 shadow-xs">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-3.5">
+                      <div className="size-11 bg-slate-50 border-2 border-slate-100 rounded-xl flex items-center justify-center">
+                        <FileText className={cn("size-5.5", file.progress === 100 ? "text-orange-500" : "text-slate-400")} />
                       </div>
                       <div>
-                        <h4 className="font-bold">{file.name}</h4>
-                        <p className="text-xs text-slate-500 font-mono mt-1">{file.size} • {file.status.toUpperCase()}</p>
+                        <h4 className="font-bold text-slate-800 text-sm">{file.name}</h4>
+                        <p className="text-[10px] text-slate-400 font-mono font-bold mt-0.5">{file.size} • {file.status.toUpperCase()}</p>
                       </div>
                     </div>
                     {file.progress === 100 ? (
-                      <CheckCircle2 className="size-6 text-sky-400" />
+                      <CheckCircle2 className="size-5 text-orange-500" />
                     ) : (
-                      <div className="size-5 border-2 border-sky-500/20 border-t-sky-500 rounded-full animate-spin" />
+                      <div className="size-4.5 border-2 border-orange-200 border-t-orange-500 rounded-full animate-spin" />
                     )}
                   </div>
-                  <div className="h-1 bg-slate-800 w-full rounded-full overflow-hidden">
+                  <div className="h-1.5 bg-slate-100 w-full rounded-full overflow-hidden p-0.5 border border-slate-200/20">
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${file.progress}%` }}
-                      className="h-full bg-sky-500 shadow-[0_0_8px_rgba(14,165,233,0.5)] transition-all"
+                      className="h-full bg-orange-400 rounded-full transition-all"
                     />
                   </div>
                 </GlassCard>
@@ -961,46 +1036,46 @@ const UploadCockpit = ({ onBack }) => {
             </div>
           </div>
 
-          <aside className="flex flex-col gap-8">
-            <div className="flex flex-col gap-6 p-6 rounded-2xl border border-slate-800 bg-[#121635]/20">
-              <h3 className="font-bold text-purple-400 flex items-center gap-2">
-                <Settings className="size-5" />
-                Processing Protocols
+          <aside className="flex flex-col gap-6">
+            <div className="flex flex-col gap-5 p-5 rounded-2xl border-2 border-orange-100/60 bg-white shadow-sm">
+              <h3 className="font-black text-orange-600 text-sm uppercase tracking-wider flex items-center gap-2">
+                <Settings className="size-4" />
+                Pipeline Strategy
               </h3>
 
               <div className="flex flex-col gap-4">
-                <div className="flex flex-col gap-2">
-                  <span className="text-[10px] font-mono uppercase text-slate-500">Target Language</span>
-                  <select className="bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-sky-500">
-                    <option>Auto-Detect Context</option>
-                    <option>English</option>
-                    <option>Spanish</option>
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-[10px] font-mono uppercase text-slate-400 font-bold">Target Output</span>
+                  <select className="bg-slate-50 border-2 border-slate-100 rounded-lg p-2 text-xs text-slate-800 font-bold focus:outline-none">
+                    <option>Auto-Detect Dialect</option>
+                    <option>English (Simplified)</option>
+                    <option>Spanish Translation</option>
                   </select>
                 </div>
 
-                <div className="flex flex-col gap-2">
-                  <span className="text-[10px] font-mono uppercase text-slate-500">Privacy Safeguards</span>
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-[10px] font-mono uppercase text-slate-400 font-bold">Network Privacy Tiers</span>
                   <div className="flex gap-2">
-                    <button className="flex-1 py-2 text-xs font-bold border border-sky-500 bg-sky-500/10 text-sky-400 rounded-lg">PRIVATE</button>
-                    <button className="flex-1 py-2 text-xs font-bold border border-slate-800 text-slate-400 hover:text-white rounded-lg">MESH-SHARED</button>
+                    <button className="flex-1 py-1.5 text-[10px] font-black border-2 border-orange-300 bg-orange-50 text-orange-700 rounded-lg uppercase">LOCAL</button>
+                    <button className="flex-1 py-1.5 text-[10px] font-black border-2 border-slate-100 text-slate-400 bg-white hover:text-slate-700 rounded-lg uppercase">SHARED</button>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-300">OCR Vision Fallback</span>
-                  <div className="w-10 h-5 bg-sky-500 rounded-full relative"><div className="absolute right-1 top-1 size-3 bg-white rounded-full" /></div>
+                <div className="flex items-center justify-between text-xs font-bold text-slate-600 pt-1 border-t border-slate-50">
+                  <span>OCR Ingestion Fallback</span>
+                  <div className="w-10 h-5 bg-orange-500 rounded-full relative"><div className="absolute right-1 top-1 size-3 bg-white rounded-full" /></div>
                 </div>
               </div>
 
-              <CyberButton className="w-full mt-4">Synthesize Metadata</CyberButton>
+              <CyberButton className="w-full">Re-Compile Layout</CyberButton>
             </div>
 
-            <div className="p-6 rounded-2xl border border-sky-500/20 bg-sky-500/5 flex flex-col gap-3 border-l-4 border-l-sky-500">
-              <div className="flex items-center gap-2 text-sky-400">
-                <Info className="size-5" />
-                <span className="font-bold">System Telemetry</span>
+            <div className="p-5 rounded-2xl border-2 border-orange-100 bg-orange-50/20 flex flex-col gap-2 shadow-xs">
+              <div className="flex items-center gap-2 text-orange-600">
+                <Info className="size-4.5" />
+                <span className="font-black text-xs uppercase tracking-wide">Workspace Analytics</span>
               </div>
-              <p className="text-xs text-slate-400 font-mono leading-relaxed">NEURAL PIPELINE CORES ONLINE (42% STACK). INFERENCE METRIC: 4.2 SECONDS LATENCY.</p>
+              <p className="text-[10px] text-slate-500 font-mono leading-relaxed font-bold">PROCESSING ENDPOINTS RESPONDING OPERATIONAL STATE. CORE STACK METRICS NORMAL.</p>
             </div>
           </aside>
         </div>
@@ -1010,61 +1085,60 @@ const UploadCockpit = ({ onBack }) => {
 };
 
 const PlayerScreen = ({ onBack }) => (
-  <div className="h-screen bg-slate-950 text-white flex flex-col">
-    <header className="border-b border-slate-800 p-4 flex justify-between items-center bg-slate-900/30">
+  <div className="h-screen bg-[#fcf9f2] text-slate-800 flex flex-col">
+    <header className="border-b-2 border-orange-100/60 p-4 flex justify-between items-center bg-white shadow-xs">
       <div className="flex items-center gap-6">
-        <button onClick={onBack} className="p-2 hover:bg-white/5 rounded-xl"><ArrowLeft className="size-6 text-slate-400 hover:text-white transition-colors" /></button>
-        <h1 className="text-xl font-bold flex items-center gap-3">
-          <BookOpen className="text-sky-400 size-5" />
+        <button onClick={onBack} className="p-2 hover:bg-slate-50 rounded-xl cursor-pointer"><ArrowLeft className="size-6 text-slate-500 hover:text-orange-500 transition-colors" /></button>
+        <h1 className="text-xl font-black flex items-center gap-3 text-slate-900">
+          <BookOpen className="text-orange-500 size-5" />
           Live Speech Transcription Space
         </h1>
       </div>
       <div className="flex items-center gap-4">
-        <button className="p-2 hover:bg-white/5 rounded-xl text-slate-400"><Settings className="size-5" /></button>
-        <button className="p-2 border border-sky-500/30 rounded-xl text-sky-400 bg-sky-500/10"><Accessibility className="size-5" /></button>
+        <button className="p-2 hover:bg-slate-50 rounded-xl text-slate-400"><Settings className="size-5" /></button>
+        <button className="p-2 border-2 border-orange-200 rounded-xl text-orange-600 bg-orange-50 shadow-xs"><Accessibility className="size-5" /></button>
       </div>
     </header>
 
     <div className="flex-1 flex overflow-hidden p-6 gap-6">
-      <div className="w-[450px] flex flex-col gap-4">
-        <div className="flex-1 rounded-2xl border border-sky-500/30 bg-slate-900/10 shadow-[0_0_15px_rgba(14,165,233,0.1)] overflow-hidden flex flex-col">
-          <div className="flex-1 bg-slate-900 relative">
-            <img src="https://images.unsplash.com/photo-1614728263952-84ea206f99b6?w=600&auto=format&fit=crop" alt="ASL Signer" className="w-full h-full object-cover opacity-80" />
-            <div className="absolute top-4 left-4 flex items-center gap-2 bg-slate-950/80 backdrop-blur px-3.5 py-1.5 rounded-full text-[10px] font-bold uppercase border border-slate-800">
-              <div className="size-2 bg-red-500 rounded-full animate-pulse" /> ASL Interpreter Active
+      <div className="w-[440px] flex flex-col gap-4">
+        <div className="flex-1 rounded-2xl border-2 border-orange-100/60 bg-white shadow-sm overflow-hidden flex flex-col">
+          <div className="flex-1 bg-slate-50 relative">
+            <img src="https://images.unsplash.com/photo-1614728263952-84ea206f99b6?w=600&auto=format&fit=crop" alt="ASL Signer" className="w-full h-full object-cover opacity-95" />
+            <div className="absolute top-4 left-4 flex items-center gap-2 bg-white/95 backdrop-blur px-3 py-1 rounded-full text-[10px] font-black uppercase border-2 border-orange-100 text-slate-700 shadow-sm">
+              <div className="size-2 bg-rose-500 rounded-full animate-pulse" /> Live Sign Interpreter Mounted
             </div>
           </div>
-          <div className="h-16 bg-slate-900 flex items-center justify-between px-4 border-t border-slate-800">
+          <div className="h-16 bg-slate-50 flex items-center justify-between px-4 border-t-2 border-orange-100/40">
             <div className="flex gap-2">
-              <button className="size-10 flex items-center justify-center hover:bg-white/5 rounded-xl"><RotateCcw className="size-5 text-slate-400" /></button>
-              <button className="size-10 flex items-center justify-center bg-sky-600 text-white rounded-xl"><PauseCircle className="size-5" /></button>
-              <button className="size-10 flex items-center justify-center hover:bg-white/5 rounded-xl"><PlayCircle className="size-5 text-slate-400" /></button>
+              <button className="size-9 border-2 border-slate-200 bg-white flex items-center justify-center hover:bg-slate-100 rounded-xl transition-all shadow-xs"><RotateCcw className="size-4.5 text-slate-500" /></button>
+              <button className="size-9 flex items-center justify-center bg-orange-500 text-white rounded-xl shadow-xs hover:bg-orange-600 border-b-2 border-orange-700 active:border-b-0 transition-all"><PauseCircle className="size-4.5" /></button>
+              <button className="size-9 border-2 border-slate-200 bg-white flex items-center justify-center hover:bg-slate-100 rounded-xl transition-all shadow-xs"><PlayCircle className="size-4.5 text-slate-500" /></button>
             </div>
-            <button className="text-xs font-mono border border-slate-800 px-3 py-1.5 rounded-lg text-slate-400">1.0x Speed</button>
+            <button className="text-xs font-mono border-2 border-slate-200 px-3 py-1 rounded-lg text-slate-500 bg-white font-bold shadow-xs">Playback: 1.0x</button>
           </div>
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col rounded-2xl border border-slate-800 bg-slate-900/20 overflow-hidden">
-        <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-white/5">
-          <h2 className="text-xl font-bold flex items-center gap-3"><div className="w-1.5 h-6 bg-sky-500 rounded" /> Linear Classical Vectors</h2>
-          <span className="text-xs font-mono border border-slate-800 px-2 py-1 rounded text-slate-400">English (en)</span>
+      <div className="flex-1 flex flex-col rounded-2xl border-2 border-orange-100/60 bg-white shadow-sm overflow-hidden">
+        <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+          <h2 className="text-lg font-black flex items-center gap-2.5 text-slate-900"><div className="w-1.5 h-5 bg-orange-400 rounded" /> Section 3: Classical Field Vector Ratios</h2>
+          <span className="text-xs font-mono border-2 border-slate-200 px-2 py-0.5 rounded text-slate-500 bg-white font-bold">English (en)</span>
         </div>
-        <div className="flex-1 overflow-y-auto p-8 space-y-8 leading-relaxed text-slate-300">
-          <p className="text-lg">Welcome to the Live Speech Space. Today, we are reviewing classical mechanical systems and Newtonian vector spaces.</p>
-          <div className="text-xl text-white relative">
-            <div className="absolute -left-6 top-2.5 size-2 bg-sky-500 rounded-full animate-pulse" />
+        <div className="flex-1 overflow-y-auto p-8 space-y-6 leading-relaxed text-slate-700 font-medium">
+          <p className="text-lg text-slate-600">Welcome to the Live Speech Space. Today, we are reviewing classical mechanical systems and Newtonian vector spaces.</p>
+          <div className="text-xl text-slate-900 relative pl-4 border-l-4 border-orange-300">
             In classical Newtonian mechanics, force is directly proportional to mass times acceleration:{" "}
-            <span className="bg-sky-500/20 text-sky-400 font-bold px-1.5 py-0.5 rounded border border-sky-500/30">
+            <span className="bg-orange-50 text-orange-700 font-black px-1.5 py-0.5 rounded border border-orange-200">
               {"$\\sum F = ma$"}
             </span>
             . However, when the mass vector changes, the change in momentum over time is expressed as{" "}
-            <span className="text-sky-300 border-b border-dashed border-sky-500/50 pb-0.5 cursor-help">
+            <span className="text-orange-600 border-b-2 border-dashed border-orange-400/60 pb-0.5 cursor-help font-extrabold">
               {"$F = \\frac{dp}{dt} = m \\frac{dv}{dt}$"}
             </span>
             .
           </div>
-          <p className="text-lg">This differential form simplifies coordinate transformations across diverse inertial frames.</p>
+          <p className="text-lg text-slate-600">This differential form simplifies coordinate transformations across diverse inertial frames.</p>
         </div>
       </div>
     </div>
@@ -1086,14 +1160,10 @@ const MediaIntegration = ({ onBack }) => {
     try {
       const response = await fetch('http://127.0.0.1:8000/api/process-video', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ video_url: videoUrl }),
       });
-      if (!response.ok) {
-        throw new Error(`Failed with status: ${response.status}`);
-      }
+      if (!response.ok) throw new Error(`Failed with status: ${response.status}`);
       const result = await response.json();
       if (result.status === 'success') {
         setVideoNotes(result.data.adapted_markdown);
@@ -1109,102 +1179,101 @@ const MediaIntegration = ({ onBack }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0c0f24] text-white">
-      <header className="h-[72px] border-b border-purple-500/10 flex items-center px-10 gap-6 bg-[#121635]/30 sticky top-0 z-50">
-        <button onClick={onBack} className="p-2 text-purple-400 hover:bg-white/5 rounded-xl cursor-pointer"><ArrowLeft className="size-6" /></button>
-        <h1 className="text-xl font-bold flex items-center gap-3">
-          <PlayCircle className="text-purple-400" />
+    <div className="min-h-screen bg-[#fcf9f2] text-white">
+      <header className="h-[72px] border-b-2 border-orange-100/60 flex items-center px-8 md:px-10 gap-6 bg-white sticky top-0 z-50 shadow-xs">
+        <button onClick={onBack} className="p-2 text-slate-500 hover:bg-slate-50 rounded-xl cursor-pointer"><ArrowLeft className="size-6 hover:text-orange-500 transition-colors" /></button>
+        <h1 className="text-xl font-black flex items-center gap-3 text-slate-900">
+          <PlayCircle className="text-orange-500" />
           YouTube Video Ingestion Lab
         </h1>
       </header>
 
-      <main className="max-w-[800px] mx-auto py-16 px-4 flex flex-col gap-16">
-        <div className="text-center flex flex-col gap-6">
-          <h2 className="text-4xl font-extrabold tracking-tight text-white">YouTube Audio & Chapter Parser</h2>
-          <p className="text-slate-300 text-lg leading-relaxed">Input a lecture video link. Our pipeline downloads the audio stream, segments chapters using AssemblyAI, and outputs structured academic summaries.</p>
+      <main className="max-w-[800px] mx-auto py-12 px-4 flex flex-col gap-12">
+        <div className="text-center flex flex-col gap-4">
+          <h2 className="text-3xl font-black tracking-tight text-slate-900">YouTube Audio Chapter Segmentation Hub</h2>
+          <p className="text-slate-600 text-base leading-relaxed font-medium">Extract high-sign chapter segments, subtitle alignments, and textual synopsis files client-side instantly from classroom lecture feeds.</p>
 
-          <form onSubmit={handleYoutubeSubmit} className="flex flex-col items-start gap-2 mt-4 relative w-full text-left">
-            <label htmlFor="url-input" className="font-mono text-xs text-purple-400 uppercase ml-1">Video URL</label>
+          <form onSubmit={handleYoutubeSubmit} className="flex flex-col items-start gap-1.5 mt-4 relative w-full text-left">
+            <label htmlFor="url-input" className="font-mono text-xs text-orange-500 uppercase ml-1 font-bold">Input Streaming URL</label>
             <div className="relative w-full flex items-center">
-              <Search className="absolute left-4 size-5 text-purple-300/60" />
+              <Search className="absolute left-4 size-5 text-slate-400" />
               <input
                 id="url-input"
                 type="url"
                 value={videoUrl}
-                onChange={(e) => setVideoUrl}
+                onChange={(e) => setVideoUrl(e.target.value)}
                 placeholder="https://www.youtube.com/watch?v=..."
-                className="w-full h-14 pl-12 pr-32 bg-[#121635] border border-purple-500/10 rounded-xl focus:ring-2 focus:ring-purple-400 focus:outline-none text-white text-sm"
+                className="w-full h-12 pl-12 pr-32 bg-white border-2 border-orange-100 rounded-xl focus:outline-none focus:border-orange-400 text-slate-900 text-sm shadow-xs transition-all font-medium"
               />
               <button
                 type="submit"
-                onClick={handleYoutubeSubmit}
                 disabled={videoLoading}
-                className="absolute right-2 h-10 px-5 bg-purple-600 text-white font-bold rounded-lg flex items-center gap-2 hover:bg-purple-500 transition-all text-xs uppercase disabled:opacity-50"
+                className="absolute right-2 h-9 px-4 bg-orange-500 text-white font-bold rounded-lg flex items-center gap-1.5 hover:bg-orange-600 border-b-2 border-orange-700 active:border-b-0 text-xs uppercase disabled:opacity-50 transition-all shadow-xs"
               >
-                {videoLoading ? 'Parsing...' : 'Parse'} <Zap className="size-4" />
+                {videoLoading ? 'Parsing...' : 'Process'} <Zap className="size-3.5" />
               </button>
             </div>
           </form>
 
           {videoLoading && (
-            <div className="flex flex-col items-center justify-center p-12 border border-purple-500/10 rounded-2xl bg-[#121635]/20 mt-6">
-              <div className="size-12 border-4 border-purple-500/20 border-t-purple-500 rounded-full animate-spin mb-4" />
-              <p className="text-purple-300 font-bold text-sm">Parsing lecture video audio and neural mapping... 🚀</p>
+            <div className="flex flex-col items-center justify-center p-12 border-2 border-orange-100 rounded-2xl bg-white mt-6 shadow-xs">
+              <div className="size-10 border-4 border-orange-200 border-t-orange-500 rounded-full animate-spin mb-3" />
+              <p className="text-orange-600 font-bold text-xs uppercase tracking-wide">Compiling semantic media chapters... 🚀</p>
             </div>
           )}
 
           {videoError && (
-            <div className="p-4 border border-rose-500/20 rounded-xl bg-rose-500/10 text-rose-400 text-sm mt-6">
+            <div className="p-4 border-2 border-rose-200 rounded-xl bg-rose-50 text-rose-700 text-sm font-bold mt-6 text-left shadow-xs">
               ⚠️ {videoError}
             </div>
           )}
 
           {videoNotes && (
-            <GlassCard className="p-8 flex flex-col gap-6 mt-6 border-purple-500/30 bg-[#121635]/30 text-left">
-              <div className="flex items-center gap-3 border-b border-purple-500/10 pb-4">
-                <Zap className="text-purple-400 size-7" />
-                <h3 className="text-xl font-bold text-white">Adapted Lecture Summaries 📖✨</h3>
+            <GlassCard className="p-8 flex flex-col gap-6 mt-6 border-2 border-orange-100 bg-white text-left shadow-md">
+              <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
+                <Zap className="text-orange-500 size-6" />
+                <h3 className="text-xl font-black text-slate-900">Structured Lecture Analysis 📖✨</h3>
               </div>
-              <div className="text-gray-300 mt-4 prose prose-invert max-w-none">
+              <div className="text-slate-700 mt-2 prose max-w-none font-medium">
                 <ReactMarkdown>{videoNotes}</ReactMarkdown>
               </div>
             </GlassCard>
           )}
         </div>
 
-        <div className="flex flex-col gap-8">
-          <GlassCard className="p-8 flex flex-col gap-6">
-            <div className="flex items-center gap-3 border-b border-slate-800 pb-4">
-              <Radar className="text-sky-400 size-7" />
-              <h3 className="text-xl font-bold">Extracted STEM Topics</h3>
+        <div className="flex flex-col gap-6">
+          <GlassCard className="p-6 flex flex-col gap-4 bg-white border-2 border-orange-100/60 shadow-xs">
+            <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
+              <Radar className="text-orange-500 size-6" />
+              <h3 className="text-lg font-black text-slate-900">Extracted Domain Tags</h3>
             </div>
-            <div className="flex flex-wrap gap-4">
+            <div className="flex flex-wrap gap-3">
               {['Classical Mechanics', 'Newtonian Vectors', 'Differential Momentum', 'Inertial Coordinate Frames', 'Academic Ingestion'].map((topic, i) => (
-                <div key={topic} className={cn("px-4 py-2 border-l-4 font-mono text-sm bg-slate-900 border-slate-800 rounded-r-lg", i < 2 ? "border-sky-500 text-white font-bold" : i === 2 ? "border-indigo-500 text-indigo-400" : "border-slate-700 text-slate-400")}>
+                <div key={topic} className={cn("px-3.5 py-1.5 border-l-4 font-mono text-xs bg-slate-50 border-slate-200 rounded-r-lg font-bold shadow-xs", i < 2 ? "border-orange-500 text-slate-800" : i === 2 ? "border-indigo-400 text-indigo-700" : "border-slate-400 text-slate-500")}>
                   {topic}
                 </div>
               ))}
             </div>
           </GlassCard>
 
-          <section className="rounded-2xl border border-slate-800 bg-slate-900/20 p-8 flex flex-col gap-6">
-            <div className="flex items-center gap-3 border-b border-slate-800 pb-4">
-              <LayoutDashboard className="text-sky-400 size-7" />
-              <h3 className="text-xl font-bold">Chapter Timeline</h3>
+          <section className="rounded-2xl border-2 border-orange-100/60 bg-white p-6 md:p-8 flex flex-col gap-5 shadow-sm">
+            <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
+              <LayoutDashboard className="text-orange-500 size-6" />
+              <h3 className="text-lg font-black text-slate-900">Lesson Timeline Steps</h3>
             </div>
-            <div className="flex flex-col gap-8 border-l-2 border-slate-850 ml-4 pl-6 relative">
+            <div className="flex flex-col gap-6 border-l-2 border-orange-100 ml-3 pl-5 relative">
               {[
-                { time: '00:00', title: 'Vector Momentum Introduction', desc: 'Analyzing force sums and basic equations in simple setups.' },
-                { time: '12:45', title: 'Differential Derivatives', desc: 'Understanding momentum derivatives over time using LaTeX.' },
-                { time: '28:30', title: 'Inertial Transformation Structures', desc: 'Applying vector models to coordinate spaces in physical simulations.' }
+                { time: '00:00', title: 'Vector Momentum Framework', desc: 'Analyzing basic spatial calculations inside simple coordinate equations.' },
+                { time: '12:45', title: 'Differential Derivatives Breakdown', desc: 'Processing mathematical rates over localized constraints.' },
+                { time: '28:30', title: 'Coordinate System Adjustments', desc: 'Integrating algorithmic transformations to simplify interface physics targets.' }
               ].map((chapter, i) => (
                 <div key={i} className="relative">
-                  <div className={cn("absolute -left-[31px] top-1 size-3 rounded-full", i === 0 ? "bg-sky-500 shadow-[0_0_8px_rgba(14,165,233,0.8)]" : "bg-slate-700")} />
+                  <div className={cn("absolute -left-[28px] top-1 size-2.5 rounded-full", i === 0 ? "bg-orange-500 shadow-[0_0_6px_rgba(249,115,22,0.6)]" : "bg-slate-300")} />
                   <div className="flex items-center gap-4">
-                    <span className={cn("font-mono text-sm min-w-[60px]", i === 0 ? "text-sky-400" : "text-slate-500")}>{chapter.time}</span>
+                    <span className={cn("font-mono text-xs min-w-[50px] font-bold", i === 0 ? "text-orange-600" : "text-slate-400")}>{chapter.time}</span>
                     <div>
-                      <h4 className="font-bold">{chapter.title}</h4>
-                      <p className="text-sm text-slate-400 mt-1">{chapter.desc}</p>
+                      <h4 className="font-bold text-slate-800 text-sm">{chapter.title}</h4>
+                      <p className="text-xs text-slate-500 mt-0.5 font-medium leading-relaxed">{chapter.desc}</p>
                     </div>
                   </div>
                 </div>
@@ -1212,19 +1281,19 @@ const MediaIntegration = ({ onBack }) => {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-slate-800 bg-slate-900/20 p-8 flex flex-col gap-6">
-            <div className="flex items-center gap-3 border-b border-slate-800 pb-4">
-              <PlayCircle className="text-sky-400 size-7" />
-              <h3 className="text-xl font-bold">Interactive Frame Capture</h3>
+          <section className="rounded-2xl border-2 border-orange-100/60 bg-white p-6 md:p-8 flex flex-col gap-5 shadow-sm">
+            <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
+              <PlayCircle className="text-orange-500 size-6" />
+              <h3 className="text-lg font-black text-slate-900">Synchronized Video Keyframes</h3>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {[1, 2, 3].map(i => (
-                <div key={i} className="flex flex-col gap-3 group">
-                  <div className="aspect-video relative overflow-hidden bg-slate-900 border border-slate-800 rounded-xl">
-                    <img src={`https://picsum.photos/seed/${i + 50}/400/225`} alt="" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-300" />
-                    <div className="absolute bottom-2 right-2 bg-slate-950/80 backdrop-blur px-2 py-0.5 rounded text-[10px] font-mono text-sky-400">0{i}:12</div>
+                <div key={i} className="flex flex-col gap-2">
+                  <div className="aspect-video relative overflow-hidden bg-slate-50 border-2 border-slate-100 rounded-xl shadow-xs">
+                    <img src={`https://picsum.photos/seed/${i + 50}/400/225`} alt="" className="w-full h-full object-cover opacity-95 hover:scale-101 transition-all" />
+                    <div className="absolute bottom-1.5 right-1.5 bg-white px-2 py-0.5 text-[9px] font-mono text-orange-600 border border-slate-100 font-bold shadow-xs rounded">0{i}:12</div>
                   </div>
-                  <p className="text-xs text-slate-400 leading-relaxed">Visual keyframe {i} parsed. Neural topic match: Classical Momentum.</p>
+                  <p className="text-[11px] text-slate-500 font-semibold leading-relaxed">Visual summary mark {i}. Category: Momentum Sums.</p>
                 </div>
               ))}
             </div>
@@ -1236,37 +1305,37 @@ const MediaIntegration = ({ onBack }) => {
 };
 
 const NotesScreen = ({ onBack }) => (
-  <div className="min-h-screen bg-slate-950 text-white">
-    <header className="h-[72px] border-b border-slate-800 flex items-center px-10 gap-6 bg-slate-900/30 sticky top-0 z-50">
-      <button onClick={onBack} className="p-2 text-sky-400 hover:bg-white/5 rounded-xl cursor-pointer"><ArrowLeft className="size-6" /></button>
-      <h1 className="text-xl font-bold">Academic Synapse Notes</h1>
+  <div className="min-h-screen bg-[#fcf9f2] text-slate-800">
+    <header className="h-[72px] border-b-2 border-orange-100/60 flex items-center px-8 md:px-10 gap-6 bg-white sticky top-0 z-50 shadow-xs">
+      <button onClick={onBack} className="p-2 text-slate-500 hover:bg-slate-50 rounded-xl cursor-pointer"><ArrowLeft className="size-6 hover:text-orange-500 transition-colors" /></button>
+      <h1 className="text-xl font-bold text-slate-900">Academic Synapse Notes</h1>
     </header>
 
-    <main className="max-w-[1000px] mx-auto py-16 px-4 flex flex-col gap-10">
+    <main className="max-w-[1000px] mx-auto py-12 px-4 flex flex-col gap-8">
       <div className="flex justify-between items-center">
-        <h2 className="text-3xl font-bold flex items-center gap-3"><div className="w-1.5 h-8 bg-sky-500 rounded" /> Active Transcripts</h2>
-        <CyberButton icon={Zap}>Synthesize New</CyberButton>
+        <h2 className="text-2xl font-black flex items-center gap-2.5 text-slate-900"><div className="w-1.5 h-6 bg-orange-400 rounded" /> Cached Summaries Registry</h2>
+        <CyberButton icon={Zap}>Process New</CyberButton>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {[
-          { title: 'Newtonian Forces & Inertia', date: 'Synthesized 2h ago', category: 'Physics', content: 'Evaluation of force equations inside dynamic coordinate systems...' },
-          { title: 'Causal Cosegmentation', date: 'Synthesized 1d ago', category: 'Linguistics', content: 'Applying translation safeguards to preserve scientific statements...' },
-          { title: 'LaTeX Formula Rendering', date: 'Synthesized 3d ago', category: 'Math', content: 'Formatting complex fractions using proper mathematical markup...' },
-          { title: 'Cognitive Accommodations', date: 'Synthesized 1w ago', category: 'Accessibility', content: 'Toggling open-dyslexic spacing layouts to enhance reading flow...' }
+          { title: 'Newtonian Forces & Inertia', date: 'Synced 2h ago', category: 'Physics', content: 'Evaluation of force equations inside dynamic coordinate systems...' },
+          { title: 'Causal Cosegmentation Model Logs', date: 'Synced 1d ago', category: 'Linguistics', content: 'Applying translation safeguards to preserve scientific statements...' },
+          { title: 'LaTeX Formula Rendering Rules', date: 'Synced 3d ago', category: 'Math', content: 'Formatting complex fractions using proper mathematical markup...' },
+          { title: 'Cognitive Accommodations Profiles', date: 'Synced 1w ago', category: 'Accessibility', content: 'Toggling open-dyslexic spacing layouts to enhance reading flow...' }
         ].map((note, i) => (
-          <GlassCard key={i} className="p-6 group cursor-pointer border-l-4 border-l-transparent hover:border-l-sky-500">
-            <div className="flex justify-between items-start mb-4">
-              <span className="text-[10px] font-mono text-sky-400 uppercase tracking-widest bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20">{note.category}</span>
-              <span className="text-[10px] font-mono text-slate-500">{note.date}</span>
+          <GlassCard key={i} className="p-5 bg-white border-2 border-orange-100/60 shadow-xs border-l-4 border-l-orange-400">
+            <div className="flex justify-between items-center mb-3">
+              <span className="text-[9px] font-black font-mono text-orange-700 bg-orange-50 px-2 py-0.5 rounded border border-orange-100/60 uppercase tracking-wide">{note.category}</span>
+              <span className="text-[10px] font-mono text-slate-400 font-bold">{note.date}</span>
             </div>
-            <h3 className="text-xl font-bold mb-2 group-hover:text-sky-400 transition-colors">{note.title}</h3>
-            <p className="text-sm text-slate-400 line-clamp-3 leading-relaxed">{note.content}</p>
-            <div className="mt-6 flex justify-between items-center text-xs font-bold">
-              <span className="text-slate-500">EST. 4 MIN READ</span>
-              <div className="flex items-center gap-2">
-                <div className="size-2 bg-sky-500 rounded-full" />
-                <span className="text-sky-400 font-mono text-[10px]">SYNCED</span>
+            <h3 className="text-lg font-black text-slate-900 mb-1 hover:text-orange-600 transition-colors leading-tight">{note.title}</h3>
+            <p className="text-xs text-slate-500 leading-relaxed line-clamp-3 font-medium">{note.content}</p>
+            <div className="mt-4 flex justify-between items-center text-[10px] font-bold pt-2 border-t border-slate-50 text-slate-400">
+              <span>EST. 4 MIN READ</span>
+              <div className="flex items-center gap-1.5">
+                <div className="size-2 bg-emerald-500 rounded-full" />
+                <span className="text-emerald-600 font-mono">LOCAL BACKUP READY</span>
               </div>
             </div>
           </GlassCard>
@@ -1277,61 +1346,61 @@ const NotesScreen = ({ onBack }) => (
 );
 
 const SettingsScreen = ({ onBack, profile, togglePreference }) => (
-  <div className="min-h-screen bg-slate-950 text-white">
-    <header className="h-[72px] border-b border-slate-800 flex items-center px-10 gap-6 bg-slate-900/30 sticky top-0 z-50">
-      <button onClick={onBack} className="p-2 text-sky-400 hover:bg-white/5 rounded-xl cursor-pointer"><ArrowLeft className="size-6" /></button>
-      <h1 className="text-xl font-bold">System Configurations</h1>
+  <div className="min-h-screen bg-[#fcf9f2] text-slate-800">
+    <header className="h-[72px] border-b-2 border-orange-100/60 flex items-center px-8 md:px-10 gap-6 bg-white sticky top-0 z-50 shadow-xs">
+      <button onClick={onBack} className="p-2 text-slate-500 hover:bg-slate-50 rounded-xl cursor-pointer"><ArrowLeft className="size-6 hover:text-orange-500 transition-colors" /></button>
+      <h1 className="text-xl font-bold text-slate-900">System Configurations</h1>
     </header>
 
-    <main className="max-w-[800px] mx-auto py-16 px-4 flex flex-col gap-12">
-      <div className="flex flex-col gap-8">
-        <h2 className="text-3xl font-bold border-b border-slate-800 pb-4">Theme & Typography</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <GlassCard active={profile?.high_contrast} onClick={() => togglePreference('high_contrast', profile?.high_contrast)} className="p-6 flex flex-col gap-4 cursor-pointer">
+    <main className="max-w-[800px] mx-auto py-12 px-4 flex flex-col gap-10">
+      <div className="flex flex-col gap-6">
+        <h2 className="text-2xl font-black border-b border-slate-100 pb-2 text-slate-900">Theme & Typography Options</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <GlassCard active={profile?.high_contrast} onClick={() => togglePreference('high_contrast', profile?.high_contrast)} className="p-5 flex flex-col gap-3 cursor-pointer bg-white border-2 border-orange-100/60 shadow-xs">
             <div className="flex justify-between items-center">
-              <h3 className="font-bold">High Contrast Boost</h3>
-              {profile?.high_contrast && <CheckCircle2 className="text-sky-400 size-5" />}
+              <h3 className="font-extrabold text-slate-800 text-sm">High Contrast Boost</h3>
+              {profile?.high_contrast && <CheckCircle2 className="text-orange-500 size-5" />}
             </div>
-            <p className="text-sm text-slate-400">Forces deep-contrast obsidian overrides to target low vision fatigue.</p>
+            <p className="text-xs text-slate-500 font-medium leading-relaxed">Adjusts system background layers to sharp black-and-slate lines to prevent text-bleeding effects.</p>
           </GlassCard>
 
-          <GlassCard active={profile?.dyslexia_friendly} onClick={() => togglePreference('dyslexia_friendly', profile?.dyslexia_friendly)} className="p-6 flex flex-col gap-4 cursor-pointer">
+          <GlassCard active={profile?.dyslexia_friendly} onClick={() => togglePreference('dyslexia_friendly', profile?.dyslexia_friendly)} className="p-5 flex flex-col gap-3 cursor-pointer bg-white border-2 border-orange-100/60 shadow-xs">
             <div className="flex justify-between items-center">
-              <h3 className="font-bold">Dyslexia-Friendly Layout</h3>
-              {profile?.dyslexia_friendly && <CheckCircle2 className="text-sky-400 size-5" />}
+              <h3 className="font-extrabold text-slate-800 text-sm">Dyslexia-Friendly Layout</h3>
+              {profile?.dyslexia_friendly && <CheckCircle2 className="text-orange-500 size-5" />}
             </div>
-            <p className="text-sm text-slate-400">Optimizes letter-spacing thresholds to simplify parsing long structures.</p>
+            <p className="text-xs text-slate-500 font-medium leading-relaxed">Injects character spatial adjustments across reading boxes to guarantee frictionless cognitive visual focus tracking.</p>
           </GlassCard>
         </div>
       </div>
 
-      <div className="flex flex-col gap-8">
-        <h2 className="text-3xl font-bold border-b border-slate-800 pb-4">Ingestion & Translation Toggles</h2>
-        <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-6">
+        <h2 className="text-2xl font-black border-b border-slate-100 pb-2 text-slate-900">Linguistic Framework Toggles</h2>
+        <div className="flex flex-col gap-3">
           {[
-            { key: 'dyslexia_friendly', label: 'Dyslexia-Friendly Spacing', desc: 'Persist Open-Dyslexic spacing variables across learning documents.' },
-            { key: 'high_contrast', label: 'Maximum High Contrast Override', desc: 'Forces pure slate ratios for photophobia mitigation.' },
-            { key: 'sign_language_preference', label: 'Sign Language Avatar Synced', desc: 'Auto-embeds American Sign Language (ASL) videos beside active streams.' }
+            { key: 'dyslexia_friendly', label: 'Dyslexia-Friendly Layout Configurations', desc: ' Locks text tracking variables to heightened compliance spaces locally.' },
+            { key: 'high_contrast', label: 'Maximum Contrast Backlight Override', desc: 'Forces sharp high-visibility layouts for visibility comfort triggers.' },
+            { key: 'sign_language_preference', label: 'Mount Video Sign Language Avatar Helper', desc: 'Automatically overlays supplementary sign interpreter widgets adjacent to media pipelines.' }
           ].map((s) => (
             <div
               key={s.key}
               onClick={() => togglePreference(s.key, profile?.[s.key])}
-              className="flex items-center justify-between p-6 rounded-2xl border border-slate-800 bg-slate-900/10 cursor-pointer hover:border-slate-700 transition-colors"
+              className="flex items-center justify-between p-5 rounded-xl border-2 border-orange-100/60 bg-white cursor-pointer hover:border-orange-300 transition-all shadow-xs"
             >
               <div>
-                <h4 className="font-bold text-white">{s.label}</h4>
-                <p className="text-sm text-slate-400 mt-1">{s.desc}</p>
+                <h4 className="font-bold text-slate-800 text-sm">{s.label}</h4>
+                <p className="text-xs text-slate-500 mt-0.5 font-medium">{s.desc}</p>
               </div>
-              <div className={cn("w-12 h-6 rounded-full relative transition-colors", profile?.[s.key] ? "bg-sky-500" : "bg-slate-800")}>
-                <div className={cn("absolute top-1 size-4 bg-white rounded-full transition-all", profile?.[s.key] ? "right-1" : "left-1")} />
+              <div className={cn("w-11 h-5.5 rounded-full relative transition-colors p-0.5", profile?.[s.key] ? "bg-orange-500" : "bg-slate-200")}>
+                <div className={cn("size-4.5 bg-white rounded-full transition-all shadow-xs", profile?.[s.key] ? "ml-5" : "ml-0")} />
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      <div className="flex justify-end pt-8 border-t border-slate-800">
-        <CyberButton variant="outline" onClick={onBack} className="mr-4">Confirm Settings</CyberButton>
+      <div className="flex justify-end pt-6 border-t border-slate-200">
+        <CyberButton variant="secondary" onClick={onBack}>Confirm Classroom Profile Settings</CyberButton>
       </div>
     </main>
   </div>
@@ -1361,10 +1430,10 @@ export default function App() {
           .eq('id', user.id);
 
         if (error) throw error;
-        console.log(`[Supabase Persistence] Synchronized '${key}' preference state value:`, newValue);
+        console.log(`[Supabase Schema Persistence] Sync completed for preference key '${key}':`, newValue);
       }
     } catch (err) {
-      console.error(`[Supabase ERR] Fails to update preference state for '${key}':`, err);
+      console.error(`[Supabase SCHEMA ERR] Failure to commit property update for target '${key}':`, err);
     }
   };
 
@@ -1379,14 +1448,14 @@ export default function App() {
   }, []);
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-[#fcf9f2]">
       <AnimatePresence mode="wait">
         <motion.div
           key={screen}
-          initial={{ opacity: 0, y: 10 }}
+          initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          transition={{ duration: 0.35, ease: "easeOut" }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.3, ease: "easeOut" }}
         >
           {screen === 'login' && <LoginScreen onNext={() => setScreen('reg0')} />}
           {screen === 'reg0' && <Registration0 onNext={() => setScreen('reg1')} />}

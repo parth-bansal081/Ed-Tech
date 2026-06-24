@@ -4,17 +4,49 @@ import { supabase } from '@/lib/supabaseClient';
 
 const AccessibilityContext = createContext();
 
+/**
+ * THEME DEFINITIONS — Light Educational Theme System
+ * ─────────────────────────────────────────────────────
+ * Four themes, all built on a light cream base.
+ *
+ * 'edu-light'    → Standard Light Educational Primary (default)
+ *                  Warm cream backgrounds, sky-blue/indigo accents,
+ *                  white card tiles, friendly shadows.
+ *
+ * 'high-contrast'→ Sharp High-Contrast (WCAG AAA)
+ *                  Pure white background, near-black text (#0f172a),
+ *                  vivid yellow-400 focus rings & active indicators,
+ *                  thick 3px borders. Animations disabled.
+ *
+ * 'low-sensory'  → Muted Pastel (ADHD / Autism friendly)
+ *                  Very pale sky-50 base, soft charcoal text,
+ *                  no glows, no gradients, no animations.
+ *
+ * 'eco-saver'    → Eco-Saver / Low-Bandwidth Mobile
+ *                  Plain white base, system-ui web-safe fonts only,
+ *                  no external assets, no animations, minimal shadows.
+ *
+ * NOTE: 'high-contrast' is the only theme that also writes
+ *       `high_contrast: true` to the Supabase profiles table.
+ *       All other theme choices are persisted in localStorage only
+ *       to respect the Zero-Backend-Changes constraint.
+ */
 export function AccessibilityProvider({ children }) {
     const [profile, setProfile] = useState({
         full_name: '',
         dyslexia_friendly: false,
         high_contrast: false,
         sign_language_preference: false,
-        theme: 'cosmic-dark', // 'cosmic-dark' | 'high-contrast' | 'low-sensory' | 'eco-saver'
+        // 'edu-light' | 'high-contrast' | 'low-sensory' | 'eco-saver'
+        theme: 'edu-light',
     });
     const [loading, setLoading] = useState(true);
 
-    // Sync theme selection to localStorage and update Supabase high_contrast if necessary
+    /**
+     * updateTheme — client-side theme switcher.
+     * Persists to localStorage. Syncs high_contrast flag to Supabase
+     * only when switching to/from 'high-contrast'.
+     */
     const updateTheme = async (newTheme) => {
         if (typeof window !== 'undefined') {
             localStorage.setItem('aerolearn_theme', newTheme);
@@ -22,14 +54,14 @@ export function AccessibilityProvider({ children }) {
 
         const isHighContrast = newTheme === 'high-contrast';
 
-        // 1. Optimistic Local State Sync
+        // 1. Optimistic local state update
         setProfile(prev => ({
             ...prev,
             theme: newTheme,
-            high_contrast: isHighContrast
+            high_contrast: isHighContrast,
         }));
 
-        // 2. Synchronize to Supabase if session exists
+        // 2. Sync high_contrast column to Supabase (no schema change needed)
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
@@ -37,53 +69,49 @@ export function AccessibilityProvider({ children }) {
                     .from('profiles')
                     .update({
                         high_contrast: isHighContrast,
-                        updated_at: new Date().toISOString()
+                        updated_at: new Date().toISOString(),
                     })
                     .eq('id', user.id);
-
                 if (error) throw error;
-                console.log(`[Supabase Theme Sync] Synchronized theme '${newTheme}' (high_contrast = ${isHighContrast})`);
+                console.log(`[AeroLearn Theme] Synced theme '${newTheme}' → high_contrast=${isHighContrast}`);
             }
         } catch (err) {
-            console.error('[Supabase Theme Sync Error]:', err);
+            console.error('[AeroLearn Theme Sync Error]:', err);
         }
     };
 
     useEffect(() => {
-        // 1. Fetch current user session and preferences on mount
         async function getUserProfile() {
             try {
                 const { data: { user } } = await supabase.auth.getUser();
-
                 let dbProfile = null;
                 if (user) {
-                    const { data, error } = await supabase.from('profiles')
+                    const { data } = await supabase
+                        .from('profiles')
                         .select('*')
                         .eq('id', user.id)
                         .single();
-
                     if (data) dbProfile = data;
                 }
 
-                // Check localStorage for client-side only themes
-                const localTheme = typeof window !== 'undefined' 
-                    ? (localStorage.getItem('aerolearn_theme') || 'cosmic-dark') 
-                    : 'cosmic-dark';
+                // Resolve the theme: Supabase high_contrast takes precedence,
+                // otherwise fall back to localStorage (never re-apply 'high-contrast'
+                // if the DB flag is false — prevents stuck state).
+                const localTheme = typeof window !== 'undefined'
+                    ? (localStorage.getItem('aerolearn_theme') || 'edu-light')
+                    : 'edu-light';
 
                 setProfile(prev => {
                     const merged = dbProfile ? { ...dbProfile } : { ...prev };
-                    
-                    // Supabase 'high_contrast' column takes precedence.
                     if (merged.high_contrast) {
                         merged.theme = 'high-contrast';
                     } else {
-                        // Otherwise, load local theme (making sure we don't load high-contrast if high_contrast is false in db)
-                        merged.theme = localTheme === 'high-contrast' ? 'cosmic-dark' : localTheme;
+                        merged.theme = localTheme === 'high-contrast' ? 'edu-light' : localTheme;
                     }
                     return merged;
                 });
             } catch (err) {
-                console.error('[AccessibilityContext getUserProfile Error]:', err);
+                console.error('[AccessibilityContext boot error]:', err);
             } finally {
                 setLoading(false);
             }
@@ -91,39 +119,48 @@ export function AccessibilityProvider({ children }) {
 
         getUserProfile();
 
-        // 2. Listen for auth changes live (login/logout events)
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            if (session?.user) {
-                try {
-                    const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
-                    if (data) {
-                        const localTheme = typeof window !== 'undefined' 
-                            ? (localStorage.getItem('aerolearn_theme') || 'cosmic-dark') 
-                            : 'cosmic-dark';
-                        
-                        setProfile({
-                            ...data,
-                            theme: data.high_contrast ? 'high-contrast' : (localTheme === 'high-contrast' ? 'cosmic-dark' : localTheme)
-                        });
+        // Live auth-state listener (login / logout events)
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+            async (event, session) => {
+                if (session?.user) {
+                    try {
+                        const { data } = await supabase
+                            .from('profiles')
+                            .select('*')
+                            .eq('id', session.user.id)
+                            .single();
+
+                        const localTheme = typeof window !== 'undefined'
+                            ? (localStorage.getItem('aerolearn_theme') || 'edu-light')
+                            : 'edu-light';
+
+                        if (data) {
+                            setProfile({
+                                ...data,
+                                theme: data.high_contrast
+                                    ? 'high-contrast'
+                                    : (localTheme === 'high-contrast' ? 'edu-light' : localTheme),
+                            });
+                        }
+                    } catch (err) {
+                        console.error('[AccessibilityContext auth change error]:', err);
                     }
-                } catch (err) {
-                    console.error('[AccessibilityContext onAuthStateChange Profile Error]:', err);
+                } else {
+                    // Sign-out: clear profile, retain local theme preference
+                    const localTheme = typeof window !== 'undefined'
+                        ? (localStorage.getItem('aerolearn_theme') || 'edu-light')
+                        : 'edu-light';
+
+                    setProfile({
+                        full_name: '',
+                        dyslexia_friendly: false,
+                        high_contrast: false,
+                        sign_language_preference: false,
+                        theme: localTheme === 'high-contrast' ? 'edu-light' : localTheme,
+                    });
                 }
-            } else {
-                // Clear state on sign out but keep the client-side local theme
-                const localTheme = typeof window !== 'undefined' 
-                    ? (localStorage.getItem('aerolearn_theme') || 'cosmic-dark') 
-                    : 'cosmic-dark';
-                
-                setProfile({
-                    full_name: '',
-                    dyslexia_friendly: false,
-                    high_contrast: false,
-                    sign_language_preference: false,
-                    theme: localTheme === 'high-contrast' ? 'cosmic-dark' : localTheme
-                });
             }
-        });
+        );
 
         return () => subscription.unsubscribe();
     }, []);
@@ -137,19 +174,19 @@ export function AccessibilityProvider({ children }) {
 
 export const useAccessibility = () => {
     const context = useContext(AccessibilityContext);
+    // Safe fallback when the provider is bypassed in layouts or tests
     if (context === undefined) {
-        // Safe testing fallback when the AccessibilityProvider is not mounted (e.g. bypassed in root layouts)
         return {
             profile: {
-                full_name: 'Space Explorer',
+                full_name: 'Learner',
                 dyslexia_friendly: false,
                 high_contrast: false,
                 sign_language_preference: false,
-                theme: 'cosmic-dark',
+                theme: 'edu-light',
             },
             setProfile: () => {},
             updateTheme: () => {},
-            loading: false
+            loading: false,
         };
     }
     return context;
