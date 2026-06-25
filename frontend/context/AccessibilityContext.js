@@ -7,9 +7,22 @@ const AccessibilityContext = createContext();
 export function AccessibilityProvider({ children }) {
     const [profile, setProfile] = useState({
         full_name: '',
+        display_name: '',
+        preferred_languages: [],
+        disabilities: [],
         dyslexia_friendly: false,
         high_contrast: false,
         sign_language_preference: false,
+        avatar_url: null,
+        bio: '',
+        reading_level_override: 'default',
+        preferred_voice_id: 'Xb7hH8MSUJpSbSDYk0k2',
+        narration_speed: 1.0,
+        low_stimulus_mode: false,
+        text_size_scale: 1.0,
+        knowledge_hive_visibility: 'matched_groups',
+        onboarding_completed_at: null,
+        goals: [],
         theme: 'cosmic-dark', // 'cosmic-dark' | 'high-contrast' | 'low-sensory' | 'eco-saver'
     });
     const [loading, setLoading] = useState(true);
@@ -53,16 +66,41 @@ export function AccessibilityProvider({ children }) {
         // 1. Fetch current user session and preferences on mount
         async function getUserProfile() {
             try {
-                const { data: { user } } = await supabase.auth.getUser();
+                console.log('[AccessibilityContext] getUserProfile: fetching user session...');
+                if (typeof window !== 'undefined') {
+                    fetch('https://sqjblpmthyisluwbqfhy.supabase.co')
+                        .then(r => console.log('[DIAGNOSTIC] Fetch to Supabase URL succeeded:', r.status))
+                        .catch(e => {
+                            console.error('[DIAGNOSTIC] Fetch to Supabase URL failed. Activating local mock database...', e);
+                            if (localStorage.getItem('aerolearn_use_mock') !== 'true') {
+                                localStorage.setItem('aerolearn_use_mock', 'true');
+                                window.location.reload();
+                            }
+                        });
+                }
+                const sessionPromise = supabase.auth.getSession();
+                const timeoutPromise = new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Session retrieval timed out after 10000ms')), 10000)
+                );
+                const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]);
+                const user = session?.user;
+                console.log('[AccessibilityContext] getUserProfile: user session fetched:', user);
 
                 let dbProfile = null;
                 if (user) {
+                    console.log('[AccessibilityContext] getUserProfile: fetching database profile for user:', user.id);
                     const { data, error } = await supabase.from('profiles')
                         .select('*')
                         .eq('id', user.id)
                         .single();
 
-                    if (data) dbProfile = data;
+                    if (error) {
+                        console.error('[AccessibilityContext] Error fetching profile from database:', error);
+                    }
+                    if (data) {
+                        dbProfile = data;
+                        console.log('[AccessibilityContext] Profile fetched from database:', dbProfile);
+                    }
                 }
 
                 // Check localStorage for client-side only themes
@@ -80,11 +118,19 @@ export function AccessibilityProvider({ children }) {
                         // Otherwise, load local theme (making sure we don't load high-contrast if high_contrast is false in db)
                         merged.theme = localTheme === 'high-contrast' ? 'cosmic-dark' : localTheme;
                     }
+                    console.log('[AccessibilityContext] Profile resolved and set:', merged);
                     return merged;
                 });
             } catch (err) {
                 console.error('[AccessibilityContext getUserProfile Error]:', err);
+                if (typeof window !== 'undefined' && localStorage.getItem('aerolearn_use_mock') !== 'true') {
+                    console.warn('[AccessibilityContext] Network connection issue. Activating Local Offline Sandbox Mode...');
+                    localStorage.setItem('aerolearn_use_mock', 'true');
+                    window.__use_mock_supabase = true;
+                    window.location.reload();
+                }
             } finally {
+                console.log('[AccessibilityContext] getUserProfile completed. Setting loading = false');
                 setLoading(false);
             }
         }
@@ -142,6 +188,8 @@ export const useAccessibility = () => {
         return {
             profile: {
                 full_name: 'Space Explorer',
+                preferred_languages: [],
+                disabilities: [],
                 dyslexia_friendly: false,
                 high_contrast: false,
                 sign_language_preference: false,

@@ -8,9 +8,9 @@ from celery_app import app
 from master_extractor import unified_extract_text as extract_text_from_document
 from reading_simplifier import simplify_text_cognitive
 from translation_auditor import audit_translation_logic
-from services.openai_service import translate_text, break_into_topics
-from services.supabase_service import update_document_status, create_topic
-from video_processor import download_youtube_audio
+from services.openai_service import translate_text, break_into_topics, synthesize_visual_notes
+from services.supabase_service import update_document_status, create_topic, fetch_document, supabase_request
+from video_processor import download_youtube_video_and_audio, extract_video_frames
 
 # Lazy initialized Whisper model for worker transcription
 whisper_model = None
@@ -52,7 +52,7 @@ def async_document_ingestion_pipeline(self, document_id: str, file_path: str = N
             raw_text = extract_res.get("text", "")
         elif youtube_url:
             print(f"[Celery Ingestion] Processing YouTube URL: {youtube_url}")
-            audio_path = download_youtube_audio(youtube_url)
+            video_path, audio_path = download_youtube_video_and_audio(youtube_url)
             if not audio_path or not os.path.exists(audio_path):
                 raise Exception("Failed to download YouTube audio stream.")
             
@@ -62,11 +62,23 @@ def async_document_ingestion_pipeline(self, document_id: str, file_path: str = N
             words = []
             for segment in segments:
                 words.append(segment.text)
-            raw_text = " ".join(words).strip()
+            flat_transcript = " ".join(words).strip()
+            
+            # Extract video frames
+            keyframes = []
+            if video_path and os.path.exists(video_path):
+                print(f"[Celery Ingestion] Extracting visual frames from: {video_path}")
+                keyframes = extract_video_frames(video_path, num_frames=6)
+                
+            # Synthesize Visual + Audio Notes
+            print("[Celery Ingestion] Running combined Audio-Visual synthesis...")
+            raw_text = synthesize_visual_notes(flat_transcript, keyframes)
             
             # Housekeeping
-            if os.path.exists(audio_path):
+            if audio_path and os.path.exists(audio_path):
                 os.remove(audio_path)
+            if video_path and os.path.exists(video_path):
+                os.remove(video_path)
         else:
             raise Exception("Neither file_path nor youtube_url was provided.")
             
@@ -84,6 +96,38 @@ def async_document_ingestion_pipeline(self, document_id: str, file_path: str = N
             translated_text = translate_text(raw_text, target_lang)
             
         update_document_status(document_id, "translating", {"translated_text": translated_text}, user_token=user_token)
+        
+        # Step 2.5: Cognitive Simplification (Phase 4 Integration)
+        # Fetch user profile to check reading level override and disabilities
+        tier_to_apply = None
+        try:
+            doc = fetch_document(document_id, user_token=user_token)
+            if doc and doc.get("owner_id"):
+                owner_id = doc["owner_id"]
+                prof_data = supabase_request("GET", f"profiles?id=eq.{owner_id}", user_token=user_token)
+                if prof_data and isinstance(prof_data, list) and len(prof_data) > 0:
+                    profile = prof_data[0]
+                    override = profile.get("reading_level_override")
+                    disabilities = profile.get("disabilities", [])
+                    
+                    # Precedence: override > disabilities > none
+                    if override and override != 'default':
+                        if override == 'simplified':
+                            tier_to_apply = 'simplified'
+                        elif override == 'detailed':
+                            tier_to_apply = None # skip simplification
+                    else:
+                        # Fallback to disability default
+                        if any(d in disabilities for d in ['dyslexia', 'adhd']):
+                            tier_to_apply = 'simplified'
+        except Exception as e:
+            print(f"[Celery Ingestion Error] Failed to resolve simplification tier: {e}")
+
+        if tier_to_apply:
+            print(f"[Celery Ingestion] Applying cognitive simplification tier '{tier_to_apply}'...")
+            simplified_res = simplify_text_cognitive(translated_text, tier_to_apply)
+            translated_text = simplified_res.get("adapted_markdown", translated_text)
+            update_document_status(document_id, "translating", {"translated_text": translated_text}, user_token=user_token)
         
         # Step 3: Logic/Translation Audit
         update_document_status(document_id, "auditing", user_token=user_token)

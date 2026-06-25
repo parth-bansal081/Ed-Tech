@@ -197,3 +197,209 @@ CREATE POLICY "Allow users to file reports"
     ON public.reports FOR INSERT
     TO authenticated
     WITH CHECK (auth.uid() = reporter_id);
+
+-- ==============================================================================
+-- 6. EXTENDED PROFILE SYSTEM (Phase 1 Database Schema Updates)
+-- ==============================================================================
+
+-- 6.1 Extend public.profiles with additional settings
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS avatar_url TEXT NULL;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS bio TEXT NULL;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS reading_level_override TEXT NULL DEFAULT 'default';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS preferred_voice_id TEXT NULL DEFAULT 'Xb7hH8MSUJpSbSDYk0k2';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS narration_speed DOUBLE PRECISION DEFAULT 1.0;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS low_stimulus_mode BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS text_size_scale DOUBLE PRECISION DEFAULT 1.0;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS knowledge_hive_visibility TEXT DEFAULT 'matched_groups';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS onboarding_completed_at TIMESTAMPTZ NULL;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS goals TEXT[] DEFAULT '{}';
+
+-- 6.2 Supporting table: profile_privacy_settings
+CREATE TABLE IF NOT EXISTS public.profile_privacy_settings (
+    user_id UUID PRIMARY KEY REFERENCES public.profiles(id) ON DELETE CASCADE,
+    show_display_name_in_hive BOOLEAN DEFAULT TRUE,
+    show_stats_publicly BOOLEAN DEFAULT FALSE,
+    allow_peer_note_requests BOOLEAN DEFAULT TRUE
+);
+
+ALTER TABLE public.profile_privacy_settings ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow select privacy settings" ON public.profile_privacy_settings;
+CREATE POLICY "Allow select privacy settings"
+    ON public.profile_privacy_settings FOR SELECT
+    TO authenticated
+    USING (true);
+
+DROP POLICY IF EXISTS "Allow users to update own privacy settings" ON public.profile_privacy_settings;
+CREATE POLICY "Allow users to update own privacy settings"
+    ON public.profile_privacy_settings FOR UPDATE
+    TO authenticated
+    USING (auth.uid() = user_id)
+    WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Allow users to insert own privacy settings" ON public.profile_privacy_settings;
+CREATE POLICY "Allow users to insert own privacy settings"
+    ON public.profile_privacy_settings FOR INSERT
+    TO authenticated
+    WITH CHECK (auth.uid() = user_id);
+
+-- 6.3 Supporting table: profile_stats
+CREATE TABLE IF NOT EXISTS public.profile_stats (
+    user_id UUID PRIMARY KEY REFERENCES public.profiles(id) ON DELETE CASCADE,
+    documents_processed INT DEFAULT 0,
+    topics_completed INT DEFAULT 0,
+    notes_shared INT DEFAULT 0,
+    notes_helped_count INT DEFAULT 0,
+    languages_used TEXT[] DEFAULT '{}',
+    current_streak_days INT DEFAULT 0,
+    longest_streak_days INT DEFAULT 0,
+    last_active_date DATE DEFAULT CURRENT_DATE
+);
+
+ALTER TABLE public.profile_stats ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow select profile_stats" ON public.profile_stats;
+CREATE POLICY "Allow select profile_stats"
+    ON public.profile_stats FOR SELECT
+    TO authenticated
+    USING (
+        auth.uid() = user_id 
+        OR EXISTS (
+            SELECT 1 FROM public.profile_privacy_settings pps 
+            WHERE pps.user_id = profile_stats.user_id 
+            AND pps.show_stats_publicly = true
+        )
+    );
+
+DROP POLICY IF EXISTS "Allow users to update own profile_stats" ON public.profile_stats;
+CREATE POLICY "Allow users to update own profile_stats"
+    ON public.profile_stats FOR UPDATE
+    TO authenticated
+    USING (auth.uid() = user_id)
+    WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Allow users to insert own profile_stats" ON public.profile_stats;
+CREATE POLICY "Allow users to insert own profile_stats"
+    ON public.profile_stats FOR INSERT
+    TO authenticated
+    WITH CHECK (auth.uid() = user_id);
+
+-- 6.4 Supporting table: linked_devices
+CREATE TABLE IF NOT EXISTS public.linked_devices (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+    device_label TEXT NOT NULL,
+    last_active TIMESTAMPTZ DEFAULT NOW(),
+    is_current BOOLEAN DEFAULT FALSE
+);
+
+ALTER TABLE public.linked_devices ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow users to manage own linked_devices" ON public.linked_devices;
+CREATE POLICY "Allow users to manage own linked_devices"
+    ON public.linked_devices FOR ALL
+    TO authenticated
+    USING (auth.uid() = user_id)
+    WITH CHECK (auth.uid() = user_id);
+
+-- 6.5 Modify Knowledge Hive notes table to prevent cascade delete of notes on profile deletion
+ALTER TABLE public.knowledge_hive_notes DROP CONSTRAINT IF EXISTS knowledge_hive_notes_uploader_id_fkey;
+ALTER TABLE public.knowledge_hive_notes 
+  ADD CONSTRAINT knowledge_hive_notes_uploader_id_fkey 
+  FOREIGN KEY (uploader_id) REFERENCES public.profiles(id) ON DELETE SET NULL;
+
+-- 6.6 Triggers to keep profile stats and privacy defaults synchronized
+
+-- A. Auto-create stats and privacy rows for new profiles
+CREATE OR REPLACE FUNCTION public.handle_new_profile()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profile_stats (user_id, documents_processed, topics_completed, notes_shared, notes_helped_count, languages_used, current_streak_days, longest_streak_days)
+  VALUES (new.id, 0, 0, 0, 0, '{}', 0, 0)
+  ON CONFLICT (user_id) DO NOTHING;
+
+  INSERT INTO public.profile_privacy_settings (user_id, show_display_name_in_hive, show_stats_publicly, allow_peer_note_requests)
+  VALUES (new.id, true, false, true)
+  ON CONFLICT (user_id) DO NOTHING;
+
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_profile_created ON public.profiles;
+CREATE TRIGGER on_profile_created
+  AFTER INSERT ON public.profiles
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_profile();
+
+-- Seed existing profiles into new tables for backward compatibility
+INSERT INTO public.profile_privacy_settings (user_id)
+SELECT id FROM public.profiles
+ON CONFLICT (user_id) DO NOTHING;
+
+INSERT INTO public.profile_stats (user_id)
+SELECT id FROM public.profiles
+ON CONFLICT (user_id) DO NOTHING;
+
+-- B. Update stats on Knowledge Hive events (Note creation, deletion, or upvote updates)
+CREATE OR REPLACE FUNCTION public.handle_hive_note_changes()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_uploader_id UUID;
+  v_upvotes_diff INT;
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    IF new.uploader_id IS NOT NULL THEN
+      UPDATE public.profile_stats
+      SET notes_shared = notes_shared + 1
+      WHERE user_id = new.uploader_id;
+    END IF;
+    
+  ELSIF TG_OP = 'UPDATE' THEN
+    IF new.uploader_id IS NOT NULL AND old.upvotes IS DISTINCT FROM new.upvotes THEN
+      v_upvotes_diff := new.upvotes - COALESCE(old.upvotes, 0);
+      
+      UPDATE public.profile_stats
+      SET notes_helped_count = notes_helped_count + v_upvotes_diff
+      WHERE user_id = new.uploader_id;
+    END IF;
+    
+  ELSIF TG_OP = 'DELETE' THEN
+    IF old.uploader_id IS NOT NULL THEN
+      UPDATE public.profile_stats
+      SET notes_shared = GREATEST(0, notes_shared - 1),
+          notes_helped_count = GREATEST(0, notes_helped_count - COALESCE(old.upvotes, 0))
+      WHERE user_id = old.uploader_id;
+    END IF;
+  END IF;
+  
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_hive_note_changed ON public.knowledge_hive_notes;
+CREATE TRIGGER on_hive_note_changed
+  AFTER INSERT OR UPDATE OR DELETE ON public.knowledge_hive_notes
+  FOR EACH ROW EXECUTE FUNCTION public.handle_hive_note_changes();
+
+-- C. Update stats when a document status changes to 'ready'
+CREATE OR REPLACE FUNCTION public.handle_document_status_changes()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF (old.status IS DISTINCT FROM new.status AND new.status = 'ready') THEN
+    UPDATE public.profile_stats
+    SET documents_processed = documents_processed + 1,
+        languages_used = ARRAY(
+          SELECT DISTINCT x
+          FROM unnest(array_append(languages_used, new.target_lang)) AS x
+        )
+    WHERE user_id = new.owner_id;
+  END IF;
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_document_ready ON public.documents;
+CREATE TRIGGER on_document_ready
+  AFTER UPDATE OF status ON public.documents
+  FOR EACH ROW EXECUTE FUNCTION public.handle_document_status_changes();
+

@@ -10,11 +10,12 @@ export const metadata = {
 export default function RootLayout({ children }) {
     return (
         <html lang="en">
-            <body className="antialiased bg-[#0a051b]">
-                {/* Temporary Bypass: We are pulling children completely out of the wrappers 
-                  so we can see our local registration page without database lockouts!
-                */}
-                {children}
+            <body className="antialiased">
+                <AccessibilityProvider>
+                    <RootThemeWrapper>
+                        {children}
+                    </RootThemeWrapper>
+                </AccessibilityProvider>
             </body>
         </html>
     );

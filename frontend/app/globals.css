@@ -1,6 +1,25 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&family=Inter:wght@300;400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --bg-primary: #0b0f19;
+  --bg-surface: #161e33;
+  --bg-surface-alt: #1f294d;
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --border-subtle: rgba(56,189,248,0.15);
+  --border-strong: rgba(251,191,36,0.25);
+  --accent-amber: #fbbf24;
+  --accent-teal: #2dd4bf;
+  --accent-coral: #f87171;
+  --accent-violet: #a855f7;
+  --status-success: #4ade80;
+  --status-warning: #fbbf24;
+  --status-error: #f87171;
+}
 
 /* Custom Friendly Scrollbars */
 ::-webkit-scrollbar {
@@ -9,54 +28,99 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: #0b0d19; /* Warm Soft Indigo */
+  background: var(--bg-primary);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #252849; /* Cozy Space Indigo */
+  background: var(--bg-surface-alt);
   border-radius: 9999px;
-  border: 2px solid #0b0d19;
+  border: 2px solid var(--bg-primary);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #3c4176;
+  background: var(--border-strong);
 }
 
 /* Warm Space Exploration Base Styling */
 body {
-  background-color: #0c0f24; /* Warm Deep Indigo - very comforting and soft */
-  color: #f1f5f9;
-  font-family: 'Outfit', 'Nunito', 'Comic Sans MS', system-ui, -apple-system, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 16px;
+  line-height: 1.7;
   overflow-x: hidden;
 }
 
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 500;
+}
+
+h1 {
+  font-size: 32px;
+  line-height: 1.2;
+}
+
+h2 {
+  font-size: 24px;
+  line-height: 1.3;
+}
+
+h3 {
+  font-size: 18px;
+  line-height: 1.4;
+}
+
+/* WCAG AA Visible Focus Ring rule */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--border-strong) !important;
+  outline-offset: 2px;
+}
+
+/* Respect user prefers-reduced-motion media query */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-delay: 0s !important;
+    animation-duration: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-delay: 0s !important;
+    transition-duration: 0s !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+
 /* Bubbly Glassmorphism Styles (Kid-Friendly Cosmic Cards) */
 .cyber-glass {
-  background: rgba(23, 27, 62, 0.55);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 2px solid rgba(168, 85, 247, 0.15); /* Soft Purple Spark */
-  border-radius: 1.5rem;
+  background: rgba(22, 30, 51, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 2px solid rgba(56, 189, 248, 0.25); /* Soft sky blue border */
+  border-radius: 2rem;
 }
 
 .cyber-glow-primary {
-  box-shadow: 0 0 25px rgba(168, 85, 247, 0.2), inset 0 0 12px rgba(168, 85, 247, 0.05);
+  box-shadow: 0 0 25px rgba(251, 191, 36, 0.18), inset 0 0 12px rgba(251, 191, 36, 0.05); /* Yellow star glow */
 }
 
 .glass-panel {
-  background: rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 2px solid rgba(255, 255, 255, 0.06);
-  border-radius: 1.5rem;
+  background: rgba(31, 41, 77, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 2px solid rgba(251, 191, 36, 0.25); /* Sunny amber border */
+  border-radius: 2rem;
 }
 
 .glass-card {
-  background: rgba(18, 22, 53, 0.7);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 2px solid rgba(99, 102, 241, 0.18); /* Soft indigo spark */
-  border-radius: 2rem; /* Extra rounded for bubbly soft look */
+  background: rgba(22, 30, 51, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 2.5px solid rgba(45, 212, 191, 0.25); /* Soft teal border */
+  border-radius: 2.5rem; /* Extra rounded for bubbly soft look */
 }
 
 /* Hitbox Accessibility Enhancements (WCAG 2.1 AA) */
@@ -133,25 +197,6 @@ body {
 }
 
 @layer utilities {
-  .cyber-glass {
-    background: rgba(255, 255, 255, 0.04);
-    backdrop-filter: blur(12px);
-    border-top: 2px solid rgba(255, 255, 255, 0.12);
-    border-left: 2px solid rgba(255, 255, 255, 0.12);
-    border-right: 2px solid rgba(255, 255, 255, 0.04);
-    border-bottom: 2px solid rgba(255, 255, 255, 0.04);
-  }
-
-  .glass-panel {
-    background: rgba(255, 255, 255, 0.04);
-    backdrop-filter: blur(12px);
-    border: 2px solid rgba(255, 255, 255, 0.06);
-  }
-
-  .cyber-glow-primary {
-    box-shadow: 0 0 20px rgba(168, 85, 247, 0.25), inset 0 0 10px rgba(168, 85, 247, 0.05);
-  }
-
   .hitbox {
     @apply min-h-[48px] min-w-[48px];
   }

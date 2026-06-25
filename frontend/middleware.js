@@ -47,6 +47,11 @@ export async function middleware(request) {
         return NextResponse.redirect(url);
     }
 
+    // 5. Rewrite any subpage under /dashboard to the main /dashboard route to support client-side url path routing
+    if (request.nextUrl.pathname.startsWith('/dashboard/') && !request.nextUrl.pathname.includes('.')) {
+        return NextResponse.rewrite(new URL('/dashboard', request.url));
+    }
+
     return response;
 }
 

@@ -37,7 +37,7 @@ def gpt4_vision_transcription(base64_image: str) -> str:
     
     try:
         response = openai_client.chat.completions.create(
-            model="gpt-4o",
+            model="gemini-2.5-flash",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {

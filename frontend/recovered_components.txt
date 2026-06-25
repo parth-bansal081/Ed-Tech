@@ -1,0 +1,330 @@
+
+                })
+            ]
+        })
+    });
+};
+// Step 3: Goals selection (Optional)
+const OnboardingStep3 = ({ onComplete, preferredLanguages, disabilities })=>{
+    const [goals, setGoals] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [errorMsg, setErrorMsg] = useState("");
+    const choices = [
+        {
+            key: "translating my coursework",
+            label: "Translating Coursework \uD83D\uDCDA",
+            desc: "Translating textbooks and videos into my primary language."
+        },
+        {
+            key: "an accessible way to study",
+            label: "Accessible Studying \uD83D\uDD0D",
+            desc: "Using specialized fonts, screen narration, or sign language."
+        },
+        {
+            key: "helping other learners",
+            label: "Helping Others \uD83E\uDD1F",
+            desc: "Sharing notes, answers, and tutoring regional language students."
+        },
+        {
+            key: "exploring",
+            label: "Exploring \uD83D\uDE80",
+            desc: "Just checking out AeroLearn's adaptive cockpits and features."
+        }
+    ];
+    const toggleChoice = (key)=>{
+        if (goals.includes(key)) {
+            setGoals(goals.filter((g)=>g !== key));
+        } else {
+            setGoals([
+                ...goals,
+                key
+            ]);
+        }
+    };
+    const handleOnboardingSubmit = async (finalGoals)=>{
+        setLoading(true);
+        setErrorMsg("");
+        try {
+            const { data: { user }, error: authError } = await supabase.auth.getUser();
+            if (authError || !user) throw new Error("Authentication session expired. Please log in again.");
+            const dyslexia_friendly = disabilities.includes("dyslexia");
+            const high_contrast = disabilities.includes("blind") || disabilities.includes("deaf");
+            const sign_language_preference = disabilities.includes("deaf");
+            const { error: dbError } = await supabase.from("profiles").upsert({
+                id: user.id,
+                preferred_languages: preferredLanguages,
+                disabilities: disabilities,
+                dyslexia_friendly,
+                high_contrast,
+                sign_language_preference,
+                goals: finalGoals,
+                onboarding_completed_at: new Date().toISOString(),
+                reading_level_override: "default",
+                preferred_voice_id: "Xb7hH8MSUJpSbSDYk0k2",
+                narration_speed: 1.0,
+                low_stimulus_mode: false,
+                text_size_scale: 1.0,
+                knowledge_hive_visibility: "matched_groups",
+                updated_at: new Date().toISOString()
+            });
+            if (dbError) throw dbError;
+            onComplete();
+        } catch (e) {
+            console.error(e);
+            setErrorMsg(e.message || "Error occurred while saving profile settings.");
+        } finally{
+            setLoading(false);
+        }
+    };
+    return /*#__PURE__*/ _jsx("div", {
+        className: "min-h-screen flex items-center justify-center p-4 bg-[#0a0a0a] text-[#e5e2e1] font-body-md",
+        children: /*#__PURE__*/ _jsxs("div", {
+            className: "w-full max-w-[720px] flex flex-col gap-8",
+            children: [
+                /*#__PURE__*/ _jsx(ProgressIndicator, {
+                    phase: "Calibration: Step C \uD83C\uDFAF",
+                    label: "Goals Alignment (Optional)",
+                    progress: 100
+                }),
+                /*#__PURE__*/ _jsxs("div", {
+                    className: "p-8 flex flex-col gap-6 rounded-none bg-[#131313] border border-t-white/10 border-l-white/10 border-b-black/30 border-r-black/20 shadow-[0_0_20px_rgba(0,0,0,0.4)]",
+                    children: [
+                        /*#__PURE__*/ _jsxs("div", {
+                            className: "flex justify-between items-start",
+                            children: [
+                                /*#__PURE__*/ _jsx("h2", {
+                                    className: "text-2xl font-bold font-headline-lg text-white",
+                                    children: "What are you hoping to use AeroLearn for?"
+                                }),
+                                /*#__PURE__*/ _jsx(BarrierTag, {
+                                    barrier: "cost"
+                                })
+                            ]
+                        }),
+                        /*#__PURE__*/ _jsx("p", {
+                            className: "text-[#bec8d2] text-sm leading-relaxed",
+                            children: "Select any goals that match your learning journey. This step is optional and skippable, purely used to customize future cockpit personalizations."
+                        }),
+                        errorMsg && /*#__PURE__*/ _jsxs("div", {
+                            role: "alert",
+                            className: "p-4 border border-red-500/20 bg-red-500/10 text-red-300 rounded-none text-xs font-mono flex items-center gap-2",
+                            children: [
+                                /*#__PURE__*/ _jsx("span", {
+                                    children: "⚠️"
+                                }),
+                                /*#__PURE__*/ _jsx("span", {
+                                    children: errorMsg
+                                })
+                            ]
+                        }),
+                        /*#__PURE__*/ _jsx("div", {
+                            className: "grid grid-cols-1 md:grid-cols-2 gap-4",
+                            children: choices.map((c)=>{
+                                const active = goals.includes(c.key);
+                                return /*#__PURE__*/ _jsxs("button", {
+                                    type: "button",
+                                    onClick: ()=>toggleChoice(c.key),
+                                    className: `p-4 rounded-none border text-left flex flex-col justify-between transition-all min-h-[100px] ${active ? "border-sky-500 bg-sky-500/10 text-white font-sans" : "border-[#3e4850]/50 bg-[#1c1b1b] text-[#bec8d2] hover:border-sky-500/40 hover:text-white font-sans"}`,
+                                    children: [
+                                        /*#__PURE__*/ _jsx("span", {
+                                            className: "font-bold text-sm block",
+                                            children: c.label
+                                        }),
+                                        /*#__PURE__*/ _jsx("span", {
+                                            className: "text-xs text-[#bec8d2] mt-2 block leading-relaxed",
+                                            children: c.desc
+                                        })
+                                    ]
+                                }, c.key);
+                            })
+                        }),
+                        /*#__PURE__*/ _jsxs("div", {
+                            className: "flex justify-between pt-6 border-t border-[#3e4850]/30 mt-4",
+                            children: [
+                                /*#__PURE__*/ _jsx("button", {
+                                    type: "button",
+                                    disabled: loading,
+                                    onClick: ()=>handleOnboardingSubmit([]),
+                                    className: "text-xs text-[#bec8d2] hover:text-white bg-[#1c1b1b] border border-[#3e4850]/50 px-4 py-2.5 rounded-none font-mono",
+                                    children: "Skip Step"
+                                }),
+                                /*#__PURE__*/ _jsx(CyberButton, {
+                                    disabled: loading,
+                                    onClick: ()=>handleOnboardingSubmit(goals),
+                                    variant: "primary",
+                                    children: loading ? "Commencing Launch..." : "Commence Launch \uD83D\uDE80"
+                                })
+                            ]
+                        })
+                    ]
+                })
+            ]
+        })
+    });
+};
+// --- SYSTEM SETTINGS SCREEN (Phase 3 UI Integration) ---
+const SettingsScreen = ({ onBack })=>{
+    const { profile: profile1, setProfile } = useAccessibility();
+    const [activeTab, setActiveTab] = useState("accessibility");
+    // Form fields state
+    const [displayName, setDisplayName] = useState("");
+    const [bio, setBio] = useState("");
+    const [avatarUrl, setAvatarUrl] = useState("");
+    const [selectedLanguages, setSelectedLanguages] = useState([]);
+    const [selectedDisabilities, setSelectedDisabilities] = useState([]);
+    const [readingOverride, setReadingOverride] = useState("default");
+    const [lowStimulus, setLowStimulus] = useState(false);
+    const [preferredVoice, setPreferredVoice] = useState("Xb7hH8MSUJpSbSDYk0k2");
+    const [narrationSpeed, setNarrationSpeed] = useState(1.0);
+    const [textSizeScale, setTextSizeScale] = useState(1.0);
+    // Privacy tab state
+    const [showNameInHive, setShowNameInHive] = useState(true);
+    const [showStatsPublicly, setShowStatsPublicly] = useState(false);
+    const [allowPeerRequests, setAllowPeerRequests] = useState(true);
+    const [hiveVisibility, setHiveVisibility] = useState("matched_groups");
+    // Supporting state
+    const [userStats, setUserStats] = useState(null);
+    const [linkedDevices, setLinkedDevices] = useState([]);
+    const [loadingData, setLoadingData] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [successMsg, setSuccessMsg] = useState("");
+    const [errorMsg, setErrorMsg] = useState("");
+    const [langInput, setLangInput] = useState("en");
+    // Deletion confirm
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [deleteConfirmText, setDeleteConfirmText] = useState("");
+    const voices = [
+        {
+            id: "Xb7hH8MSUJpSbSDYk0k2",
+            name: "Alice (Standard Female)"
+        },
+        {
+            id: "21m00Tcm4TlvDq8ikWAM",
+            name: "Rachel (Warm Conversational)"
+        },
+        {
+            id: "AZnzlk1XvdvUeBnXmlld",
+            name: "Domi (Energetic Female)"
+        },
+        {
+            id: "EXAVITQu4vr4xnSDxMaL",
+            name: "Bella (Professional Narrator)"
+        },
+        {
+            id: "ErXwobaYiN019PkySvjV",
+            name: "Antoni (Classic Male)"
+        }
+    ];
+    const languagesList = {
+        en: "English (en)",
+        es: "Spanish (es)",
+        fr: "French (fr)",
+        de: "German (de)",
+        ja: "Japanese (ja)",
+        zh: "Chinese (zh)",
+        hi: "Hindi (hi)"
+    };
+    const disabilitiesList = [
+        {
+            key: "blind",
+            label: "Blind / Low Vision \uD83D\uDC41️"
+        },
+        {
+            key: "deaf",
+            label: "Deaf / Hard of Hearing \uD83E\uDD1F"
+        },
+        {
+            key: "dyslexia",
+            label: "Dyslexia \uD83D\uDCD6"
+        },
+        {
+            key: "adhd",
+            label: "ADHD ⚡"
+        },
+        {
+            key: "autism",
+            label: "Autism Spectrum (Sensory Sensitivity) \uD83C\uDF43"
+        },
+        {
+            key: "none",
+            label: "No Accommodations (Standard Mode) \uD83D\uDE80"
+        }
+    ];
+    const avatarSeeds = [
+        "AeroPilot",
+        "Orion",
+        "Alpha",
+        "Nova",
+        "Cosmos",
+        "Nebula",
+        "StarGazer"
+    ];
+    useEffect(()=>{
+        if (profile1) {
+            setDisplayName(profile1.display_name || profile1.full_name || "");
+            setBio(profile1.bio || "");
+            setAvatarUrl(profile1.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile1.id || "AeroLearn"}`);
+            setSelectedLanguages(profile1.preferred_languages || [
+                "en"
+            ]);
+            setSelectedDisabilities(profile1.disabilities || [
+                "none"
+            ]);
+            setReadingOverride(profile1.reading_level_override || "default");
+            setLowStimulus(profile1.low_stimulus_mode || false);
+            setPreferredVoice(profile1.preferred_voice_id || "Xb7hH8MSUJpSbSDYk0k2");
+            setNarrationSpeed(profile1.narration_speed || 1.0);
+            setTextSizeScale(profile1.text_size_scale || 1.0);
+            setHiveVisibility(profile1.knowledge_hive_visibility || "matched_groups");
+        }
+    }, [
+        profile1
+    ]);
+    useEffect(()=>{
+        async function loadData() {
+            setLoadingData(true);
+            setErrorMsg("");
+            try {
+                const useMock = localStorage.getItem("aerolearn_use_mock") === "true" || window.__use_mock_supabase === true;
+                const session = await supabase.auth.getSession();
+                const token = session.data.session?.access_token;
+                const userId = session.data.session?.user?.id || "mock-user-123";
+                if (useMock) {
+                    const { data: priv } = await supabase.from("profile_privacy_settings").select("*").eq("user_id", userId).single();
+                    if (priv) {
+                        setShowNameInHive(priv.show_display_name_in_hive);
+                        setShowStatsPublicly(priv.show_stats_publicly);
+                        setAllowPeerRequests(priv.allow_peer_note_requests);
+                    }
+                    const { data: st } = await supabase.from("profile_stats").select("*").eq("user_id", userId).single();
+                    if (st) setUserStats(st);
+                    const { data: dev } = await supabase.from("linked_devices").select("*").eq("user_id", userId).order("last_active", {
+                        ascending: false
+                    });
+                    if (dev) setLinkedDevices(dev || []);
+                } else {
+                    const headers = {
+                        "Authorization": token || ""
+                    };
+                    const meResp = await fetch("http://127.0.0.1:8000/profile/me", {
+                        headers
+                    });
+                    if (meResp.ok) {
+                        const meData = await meResp.json();
+                        setUserStats(meData.stats);
+                    }
+                    const privacyResp = await fetch("http://127.0.0.1:8000/profile/me/privacy", {
+                        headers
+                    });
+                    if (privacyResp.ok) {
+                        const priv = await privacyResp.json();
+                        const pSettings = priv.privacy_settings || priv;
+                        setShowNameInHive(pSettings.show_display_name_in_hive);
+                        setShowStatsPublicly(pSettings.show_stats_publicly);
+                        setAllowPeerRequests(pSettings.allow_peer_note_requests);
+                    }
+                    const devicesResp = await fetch("http://127.0.0.1:8000/profile/me/devices", {
+                        headers
+                    });
+                    if (devicesResp.ok) {
+   

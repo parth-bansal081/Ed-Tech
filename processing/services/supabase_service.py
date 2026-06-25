@@ -1,4 +1,5 @@
 import os
+import services.env_loader # Load environment variables
 import requests
 
 SUPABASE_URL = os.environ.get("NEXT_PUBLIC_SUPABASE_URL")

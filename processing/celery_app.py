@@ -1,4 +1,5 @@
 import os
+import services.env_loader # Load environment variables
 import time
 from celery import Celery
 

@@ -88,7 +88,7 @@ def simplify_text_cognitive(markdown_text: str, tier: str) -> dict:
     try:
         print("[Neural Processing] Routing payload to OpenAI GPT-4 inference engine...")
         response = openai_client.chat.completions.create(
-            model="gpt-4o",
+            model="gemini-2.5-flash",
             response_format={"type": "json_object"},
             messages=[
                 {"role": "system", "content": system_prompt},

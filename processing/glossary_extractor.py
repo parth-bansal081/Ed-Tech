@@ -45,7 +45,7 @@ def extract_stem_glossary(text_content: str, target_language: str) -> list:
     
     try:
         response = openai_client.chat.completions.create(
-            model="gpt-4o",
+            model="gemini-2.5-flash",
             response_format={"type": "json_object"},
             messages=[
                 {"role": "system", "content": system_prompt},

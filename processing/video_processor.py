@@ -3,11 +3,6 @@ import time
 import json
 import yt_dlp
 import assemblyai as aai
-import ollama
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-import shutil
 
 def download_youtube_audio(youtube_url: str) -> str:
     """
@@ -56,6 +51,77 @@ def download_youtube_audio(youtube_url: str) -> str:
     print(f"Local Media Asset Generated: {audio_filepath}")
     
     return audio_filepath
+
+def download_youtube_video_and_audio(youtube_url: str) -> tuple[str, str]:
+    """
+    Downloads both the video stream (lightweight 360p format to save bandwidth) and extracts the audio track.
+    Returns a tuple: (video_filepath, audio_filepath).
+    """
+    print(f"--- Initiating Video & Audio Ingestion for: {youtube_url} ---")
+    download_dir = os.path.join(os.path.dirname(__file__), "downloads")
+    os.makedirs(download_dir, exist_ok=True)
+    
+    ydl_opts = {
+        'format': 'best[height<=360]/best',
+        'outtmpl': os.path.join(download_dir, '%(id)s.%(ext)s'),
+        'quiet': True,
+        'no_warnings': True
+    }
+    
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info_dict = ydl.extract_info(youtube_url, download=True)
+            video_id = info_dict.get('id', 'unknown_id')
+            ext = info_dict.get('ext', 'mp4')
+            video_filepath = os.path.join(download_dir, f"{video_id}.{ext}")
+            
+            # Extract audio from video track via ffmpeg
+            audio_filepath = os.path.join(download_dir, f"{video_id}.mp3")
+            import subprocess
+            cmd = ["ffmpeg", "-y", "-i", video_filepath, "-vn", "-acodec", "libmp3lame", "-q:a", "2", audio_filepath]
+            subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            
+            return video_filepath, audio_filepath
+    except Exception as e:
+        print(f"Error during video/audio download: {e}")
+        return "", ""
+
+def extract_video_frames(video_filepath: str, num_frames: int = 6) -> list[dict]:
+    """
+    Extracts num_frames keyframes spread evenly across the video duration using FFmpeg seeks.
+    Returns a list of dicts: [{"timestamp": float, "base64": str}]
+    """
+    import subprocess
+    import tempfile
+    import base64
+    
+    duration = 0.0
+    try:
+        cmd = ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", video_filepath]
+        res = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        duration = float(res.stdout.strip())
+    except Exception as e:
+        print(f"Error getting video duration: {e}")
+        duration = 300.0  # Fallback to 5 mins
+        
+    timestamps = [i * (duration / (num_frames + 1)) for i in range(1, num_frames + 1)]
+    
+    keyframes = []
+    for i, ts in enumerate(timestamps):
+        out_file = os.path.join(tempfile.gettempdir(), f"frame_{i}.jpg")
+        cmd = ["ffmpeg", "-y", "-ss", f"{ts:.2f}", "-i", video_filepath, "-frames:v", "1", "-q:v", "4", out_file]
+        subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if os.path.exists(out_file):
+            try:
+                with open(out_file, "rb") as f:
+                    b64 = base64.b64encode(f.read()).decode("utf-8")
+                keyframes.append({
+                    "timestamp": ts,
+                    "base64": b64
+                })
+            finally:
+                os.remove(out_file)
+    return keyframes
 
 def generate_video_chapters(audio_filepath: str) -> list:
     """
@@ -109,7 +175,7 @@ def generate_video_chapters(audio_filepath: str) -> list:
 def synthesize_chapters_into_notes(chapters_data: list) -> str:
     """
     Synthesizes the structured chapter arrays from AssemblyAI into visually stunning, 
-    highly scannable academic Markdown notes using our local neural processing layer (Ollama).
+    highly scannable academic Markdown notes using Gemini.
     """
     print(f"\n--- Initiating Academic Neural Synthesis ---")
     start_time = time.perf_counter()
@@ -148,17 +214,21 @@ def synthesize_chapters_into_notes(chapters_data: list) -> str:
     )
     
     try:
-        print("[Neural Synthesis] Igniting local Qwen2.5-VL engine to author lecture notes...")
-        response = ollama.generate(
-            model='qwen2.5vl:3b',
-            system=system_prompt,
-            prompt=user_prompt
+        from services.openai_service import openai_client
+        print("[Neural Synthesis] Igniting Gemini engine to author lecture notes...")
+        response = openai_client.chat.completions.create(
+            model='gemini-2.5-flash',
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            temperature=0.4
         )
         
-        final_notes = response.get('response', '')
+        final_notes = response.choices[0].message.content
         
     except Exception as e:
-        print(f"[CRITICAL FAILURE] Unhandled error during Ollama generation: {e}")
+        print(f"[CRITICAL FAILURE] Unhandled error during Gemini generation: {e}")
         final_notes = f"[Error] Neural synthesis failed: {e}"
         
     end_time = time.perf_counter()
